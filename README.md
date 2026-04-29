@@ -19,17 +19,20 @@ A fast, modern, and interactive result portal built for the BCA department stude
 To run this project on your local machine:
 
 1. Clone the repository:
-    
-    git clone https://github.com/YOUR_GITHUB_USERNAME/bca-result-portal.git
+```bash
+git clone https://github.com/SumitGh0sh/bca-result-portal.git
+```
 
 2. Navigate into the directory:
-    
-    cd bca-result-portal
+```bash
+cd bca-result-portal
+```
 
 3. Install dependencies and start the server:
-    
-    npm install
-    npm run dev
+```bash
+npm install
+npm run dev
+```
 
 ## 👨‍💻 Developed By
 **Sumit Ghosh** *Built for the students of R.V.S College of Engineering & Technology, Jamshedpur.*
