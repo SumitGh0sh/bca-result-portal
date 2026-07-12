@@ -3,14 +3,16 @@
 A fast, modern, and interactive result portal built for the BCA department students. This application allows students to instantly search, filter, and analyze their 1st-semester examination results using a sleek, dark-mode-first interface.
 
 ## ✨ Features
-* **Lightning Fast Search:** Find results instantly by Roll Number or Name.
-* **Smart Analytics:** View class averages, highest scores, and SGPA grade distributions.
-* **Dynamic Toppers Board:** Filter class toppers by overall grand total or specific subjects.
-* **Interactive UI:** Custom-built components with seamless Light/Dark mode switching.
-* **Fully Responsive:** Pixel-perfect design that looks great on mobile, tablet, and desktop.
+* **Lightning Fast Search:** Find results instantly by Roll Number or Name with soft lavender focus glows.
+* **Smart Analytics & GSAP Transitions:** View class averages, highest scores, and SGPA grade distributions with fluid stagger-fade progress bar animations.
+* **Dynamic Toppers Board:** Filter class toppers by overall grand total or specific subjects, complete with visual podium rankings and glowing badges.
+* **White Aesthetic SVG Icons:** Clean outline vectors replace all emoji symbols for a cohesive, modern UI.
+* **Interactive UI:** Custom-built components with seamless Light/Dark mode switching and hover scaling.
+* **Fully Responsive:** Mobile subject card stacks, portrait tablet media queries, and flex wrap optimizations for all device dimensions.
 
 ## 🛠️ Tech Stack
 * **Frontend:** React (Hooks, useMemo, useEffect)
+* **Animations:** GSAP (GreenSock Animation Platform)
 * **Build Tool:** Vite
 * **Styling:** CSS Variables (Custom Design System)
 * **Deployment:** Vercel

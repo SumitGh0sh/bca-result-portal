@@ -1,467 +1,1457 @@
 import { useState, useMemo, useEffect } from "react";
-import { SUBJECTS, STUDENTS, makeTheme, gradeColor, getGrade } from "./data/mockData";
-import { Pill, Card, Label, Input } from "./components/UIComponents";
+import {
+  SUBJECTS_SEM1,
+  SUBJECTS_SEM2,
+  STUDENTS,
+  makeTheme,
+  gradeColor,
+  getGrade
+} from "./data/mockData";
+import { Pill, Card, Label, Input, Select, Button } from "./components/UIComponents";
+import { gsap } from "gsap";
 import "./index.css";
 
+const renderTabIcon = (id, active, C) => {
+  const color = active ? C.gold : C.muted;
+  const strokeWidth = 2.2;
+  const size = 15;
+  
+  if (id === 0) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}>
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    );
+  }
+  if (id === 1) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}>
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+        <path d="M4 22h16"></path>
+        <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+        <path d="M12 2a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"></path>
+      </svg>
+    );
+  }
+  if (id === 2) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}>
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+      </svg>
+    );
+  }
+  if (id === 3) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      </svg>
+    );
+  }
+  return null;
+};
+
+const WarningIcon = ({ color, size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "middle", ...style }}>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
+const GithubIcon = ({ color, size = 18, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+  </svg>
+);
+
+const LinkedinIcon = ({ color, size = 18, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+    <rect x="2" y="9" width="4" height="12"></rect>
+    <circle cx="4" cy="4" r="2"></circle>
+  </svg>
+);
+
 function useIsMobile() {
-  const [m,setM]=useState(typeof window!=="undefined"?window.innerWidth<640:false);
-  useEffect(()=>{const h=()=>setM(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
+  const [m, setM] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 768);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
   return m;
 }
 
 export default function BCAPortal() {
   const isMobile = useIsMobile();
-  const [dark, setDark]         = useState(true);
-  const C                       = makeTheme(dark);
-  const [tab, setTab]           = useState(0);
+  const [dark, setDark] = useState(true);
+  const C = makeTheme(dark);
 
-  const [roll, setRoll]         = useState("");
-  const [name, setName]         = useState("");
-  const [found, setFound]       = useState(null);
-  const [err, setErr]           = useState("");
-  const [filterR, setFilterR]   = useState("ALL");
-  const [sortBy, setSortBy]     = useState("rank");
-  const [topSub, setTopSub]     = useState("grand");
-  const [nameQ, setNameQ]       = useState("");
-
-  const ranked = useMemo(()=>
-    [...STUDENTS].sort((a,b)=>b.grand-a.grand).map((s,i)=>({...s,rank:i+1}))
-  ,[]);
-
-  const search = () => {
-    setErr(""); setFound(null);
-    const r=roll.trim().toUpperCase(), n=name.trim().toUpperCase();
-    if(!r&&!n){setErr("Enter a roll number or name to search.");return;}
-    const s=STUDENTS.find(s=>(r&&s.rollNo.toUpperCase()===r)||(n&&s.name.toUpperCase().includes(n)));
-    if(s){const rank=ranked.find(x=>x.rollNo===s.rollNo)?.rank; setFound({...s,rank});}
-    else setErr("No matching student found. Please verify the details.");
-  };
-
-  const filteredAll = useMemo(()=>{
-    let l=[...ranked];
-    if(filterR!=="ALL") l=l.filter(s=>s.result.includes(filterR));
-    if(nameQ) l=l.filter(s=>s.name.toLowerCase().includes(nameQ.toLowerCase()));
-    if(sortBy==="sgpa") l.sort((a,b)=>b.sgpa-a.sgpa);
-    else if(sortBy==="name") l.sort((a,b)=>a.name.localeCompare(b.name));
-    else l.sort((a,b)=>a.rank-b.rank);
-    return l;
-  },[ranked,filterR,sortBy,nameQ]);
-
-  const toppers = useMemo(()=>{
-    if(topSub==="grand") return [...ranked].slice(0,5);
-    return [...STUDENTS].map(s=>({...s,subjectScore:s[topSub]?.[2]||0}))
-      .sort((a,b)=>b.subjectScore-a.subjectScore).slice(0,5);
-  },[topSub,ranked]);
-
-  const stats = useMemo(()=>{
-    const n=STUDENTS.length;
-    return {
-      total:n,
-      passed:STUDENTS.filter(s=>s.result.includes("PASSED")).length,
-      promoted:STUDENTS.filter(s=>s.result==="PROMOTED").length,
-      avgSGPA:(STUDENTS.reduce((a,s)=>a+s.sgpa,0)/n).toFixed(2),
-      avgGrand:Math.round(STUDENTS.reduce((a,s)=>a+s.grand,0)/n),
-      highest:Math.max(...STUDENTS.map(s=>s.grand)),
-    };
-  },[]);
-
-  const subjectAvg = useMemo(()=>
-    SUBJECTS.map(sub=>{
-      const scores=STUDENTS.map(s=>s[sub.code]?.[2]||0).filter(Boolean);
-      return {...sub, avg:(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1)};
-    })
-  ,[]);
-
-  const px = isMobile ? 16 : 28;
-
-  const TABS=[
-    {icon:"◎", label:"Result"},
-    {icon:"◈", label:"Toppers"},
-    {icon:"◉", label:"Analytics"},
-    {icon:"≡",  label:"All"},
+  const bandColors = dark ? [
+    "#c084fc", // Outstanding (Vibrant Lavender)
+    "#a78bfa", // Excellent (Medium Lavender)
+    "#818cf8", // Very Good (Periwinkle)
+    "#6366f1", // Good (Indigo)
+    "#4f46e5", // Average (Deep Indigo)
+    "#f43f5e"  // Below Average (Warning Rose)
+  ] : [
+    "#7c3aed", // Outstanding (Violet)
+    "#8b5cf6", // Excellent (Purple)
+    "#4f46e5", // Very Good (Indigo)
+    "#2563eb", // Good (Blue)
+    "#1d4ed8", // Average (Deep Blue)
+    "#dc2626"  // Below Average (Red warning)
   ];
 
+  // Tabs: 0 = Search, 1 = Toppers, 2 = Analytics, 3 = Ledger
+  const [tab, setTab] = useState(0);
+  
+  // Semester Context: "1", "2", "cumulative"
+  const [semContext, setSemContext] = useState("cumulative");
+
+  // Search States
+  const [roll, setRoll] = useState("");
+  const [name, setName] = useState("");
+  const [foundStudent, setFoundStudent] = useState(null);
+  const [searchError, setSearchError] = useState("");
+
+  // Ledger States
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerStatus, setLedgerStatus] = useState("ALL");
+  const [ledgerSort, setLedgerSort] = useState("rank");
+
+  // Topper States
+  const [topperSubject, setTopperSubject] = useState("grand");
+
+  // Reset topper subject when semester context changes
+  useEffect(() => {
+    setTopperSubject("grand");
+  }, [semContext]);
+
+  // GSAP animation effect for page elements
+  useEffect(() => {
+    const fadeTargets = document.querySelectorAll(".gsap-fade-in");
+    if (fadeTargets.length > 0) {
+      gsap.fromTo(fadeTargets, 
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out", stagger: 0.04, overwrite: "auto" }
+      );
+    }
+    
+    const barTargets = document.querySelectorAll(".gsap-bar");
+    if (barTargets.length > 0) {
+      gsap.fromTo(barTargets,
+        { scaleY: 0, transformOrigin: "bottom" },
+        { scaleY: 1, duration: 0.7, ease: "back.out(1.2)", stagger: 0.02, delay: 0.1, overwrite: "auto" }
+      );
+    }
+
+    const progressBars = document.querySelectorAll(".gsap-progress-bar");
+    if (progressBars.length > 0) {
+      gsap.fromTo(progressBars,
+        { width: "0%" },
+        {
+          width: (i, el) => `${el.getAttribute("data-pct")}%`,
+          duration: 0.8,
+          ease: "power2.out",
+          stagger: 0.03,
+          delay: 0.05,
+          overwrite: "auto"
+        }
+      );
+    }
+  }, [tab, semContext, foundStudent]);
+
+  // Ranks Precomputations
+  const ranksSem1 = useMemo(() => {
+    return [...STUDENTS]
+      .sort((a, b) => b.sem1.grand - a.sem1.grand)
+      .map((s, i) => ({ rollNo: s.rollNo, rank: i + 1, grand: s.sem1.grand }));
+  }, []);
+
+  const ranksSem2 = useMemo(() => {
+    const withSem2 = STUDENTS.filter((s) => s.sem2 !== null);
+    const sorted = [...withSem2].sort((a, b) => b.sem2.grand - a.sem2.grand);
+    return sorted.map((s, i) => ({ rollNo: s.rollNo, rank: i + 1, grand: s.sem2.grand }));
+  }, []);
+
+  const ranksCumulative = useMemo(() => {
+    const computed = STUDENTS.map((s) => {
+      const sem1Sgpa = s.sem1.sgpa;
+      const sem2Sgpa = s.sem2 ? s.sem2.sgpa : s.sem1.sgpa;
+      const cgpa = s.sem2 ? parseFloat(((sem1Sgpa + sem2Sgpa) / 2).toFixed(2)) : sem1Sgpa;
+      const totalGrand = s.sem1.grand + (s.sem2 ? s.sem2.grand : 0);
+      return { rollNo: s.rollNo, cgpa, totalGrand };
+    });
+    // Sort primarily by CGPA, then by totalGrand
+    const sorted = [...computed].sort((a, b) => {
+      if (b.cgpa !== a.cgpa) return b.cgpa - a.cgpa;
+      return b.totalGrand - a.totalGrand;
+    });
+    return sorted.map((s, i) => ({ rollNo: s.rollNo, rank: i + 1, cgpa: s.cgpa }));
+  }, []);
+
+  // Helper to find ranks easily
+  const studentRanks = useMemo(() => {
+    const mapping = {};
+    STUDENTS.forEach((s) => {
+      const r1 = ranksSem1.find((r) => r.rollNo === s.rollNo)?.rank || "-";
+      const r2 = ranksSem2.find((r) => r.rollNo === s.rollNo)?.rank || "-";
+      const rc = ranksCumulative.find((r) => r.rollNo === s.rollNo)?.rank || "-";
+      const cgpa = ranksCumulative.find((r) => r.rollNo === s.rollNo)?.cgpa || s.sem1.sgpa;
+      mapping[s.rollNo] = { r1, r2, rc, cgpa };
+    });
+    return mapping;
+  }, [ranksSem1, ranksSem2, ranksCumulative]);
+
+  // Search student logic
+  const handleSearch = (rQuery = roll, nQuery = name) => {
+    setSearchError("");
+    setFoundStudent(null);
+    const r = rQuery.trim().toUpperCase();
+    const n = nQuery.trim().toUpperCase();
+
+    if (!r && !n) {
+      setSearchError("Please fill in at least one field to search.");
+      return;
+    }
+
+    const s = STUDENTS.find((st) => {
+      const matchRoll = r && st.rollNo.toUpperCase() === r;
+      const matchName = n && st.name.toUpperCase().includes(n);
+      return matchRoll || matchName;
+    });
+
+    if (s) {
+      setFoundStudent(s);
+      // Fill the fields with found student info
+      setRoll(s.rollNo);
+      setName(s.name);
+    } else {
+      setSearchError("No student records found matching the criteria.");
+    }
+  };
+
+  // Search from Ledger click
+  const viewStudent = (student) => {
+    setRoll(student.rollNo);
+    setName(student.name);
+    setFoundStudent(student);
+    setTab(0);
+  };
+
+  // Ledger Filtered list
+  const ledgerData = useMemo(() => {
+    let list = STUDENTS.map((s) => {
+      const meta = studentRanks[s.rollNo];
+      return {
+        ...s,
+        r1: meta.r1,
+        r2: meta.r2,
+        rc: meta.rc,
+        cgpa: meta.cgpa
+      };
+    });
+
+    // Name / Roll Search
+    if (ledgerSearch.trim()) {
+      const query = ledgerSearch.toLowerCase();
+      list = list.filter(
+        (s) => s.name.toLowerCase().includes(query) || s.rollNo.includes(query)
+      );
+    }
+
+    // Status Filter
+    if (ledgerStatus !== "ALL") {
+      if (semContext === "1") {
+        list = list.filter((s) => s.sem1.result.includes(ledgerStatus));
+      } else if (semContext === "2") {
+        list = list.filter((s) => s.sem2 && s.sem2.result.includes(ledgerStatus));
+      } else {
+        // Cumulative passed if both are passed
+        list = list.filter((s) => {
+          const pass1 = s.sem1.result.includes("PASSED");
+          const pass2 = s.sem2 ? s.sem2.result.includes("PASSED") : false;
+          if (ledgerStatus === "PASSED") return pass1 && pass2;
+          return !pass1 || !pass2;
+        });
+      }
+    }
+
+    // Sorting
+    list.sort((a, b) => {
+      if (ledgerSort === "sgpa") {
+        if (semContext === "1") return b.sem1.sgpa - a.sem1.sgpa;
+        if (semContext === "2") return (b.sem2?.sgpa || 0) - (a.sem2?.sgpa || 0);
+        return b.cgpa - a.cgpa;
+      } else if (ledgerSort === "name") {
+        return a.name.localeCompare(b.name);
+      } else if (ledgerSort === "roll") {
+        return a.rollNo.localeCompare(b.rollNo);
+      } else {
+        // Rank sort
+        if (semContext === "1") return a.r1 - b.r1;
+        if (semContext === "2") {
+          if (!a.sem2) return 1;
+          if (!b.sem2) return -1;
+          return a.r2 - b.r2;
+        }
+        return a.rc - b.rc;
+      }
+    });
+
+    return list;
+  }, [ledgerSearch, ledgerStatus, ledgerSort, semContext, studentRanks]);
+
+  // Toppers Calculation
+  const toppersList = useMemo(() => {
+    let list = STUDENTS.map((s) => ({
+      ...s,
+      cgpa: studentRanks[s.rollNo].cgpa,
+      r1: studentRanks[s.rollNo].r1,
+      r2: studentRanks[s.rollNo].r2,
+      rc: studentRanks[s.rollNo].rc
+    }));
+
+    if (semContext === "1") {
+      if (topperSubject === "grand") {
+        list.sort((a, b) => b.sem1.grand - a.sem1.grand);
+      } else {
+        list.sort((a, b) => (b.sem1[topperSubject]?.[2] || 0) - (a.sem1[topperSubject]?.[2] || 0));
+      }
+    } else if (semContext === "2") {
+      // Filter out students without sem2
+      list = list.filter((s) => s.sem2 !== null);
+      if (topperSubject === "grand") {
+        list.sort((a, b) => b.sem2.grand - a.sem2.grand);
+      } else {
+        list.sort((a, b) => (b.sem2[topperSubject]?.[2] || 0) - (a.sem2[topperSubject]?.[2] || 0));
+      }
+    } else {
+      // Cumulative: sort by CGPA
+      list.sort((a, b) => b.cgpa - a.cgpa);
+    }
+
+    return list.slice(0, 10);
+  }, [semContext, topperSubject, studentRanks]);
+
+  // Analytics Computations
+  const stats = useMemo(() => {
+    const nTotal = STUDENTS.length;
+    const withSem2 = STUDENTS.filter((s) => s.sem2 !== null);
+    const nSem2 = withSem2.length;
+
+    // Sem 1 Stats
+    const s1Passed = STUDENTS.filter((s) => s.sem1.result.includes("PASSED")).length;
+    const s1AvgSgpa = parseFloat((STUDENTS.reduce((a, s) => a + s.sem1.sgpa, 0) / nTotal).toFixed(2));
+    const s1AvgGrand = Math.round(STUDENTS.reduce((a, s) => a + s.sem1.grand, 0) / nTotal);
+    const s1Highest = Math.max(...STUDENTS.map((s) => s.sem1.grand));
+
+    // Sem 2 Stats
+    const s2Passed = withSem2.filter((s) => s.sem2.result.includes("PASSED")).length;
+    const s2AvgSgpa = nSem2 > 0 ? parseFloat((withSem2.reduce((a, s) => a + s.sem2.sgpa, 0) / nSem2).toFixed(2)) : 0;
+    const s2AvgGrand = nSem2 > 0 ? Math.round(withSem2.reduce((a, s) => a + s.sem2.grand, 0) / nSem2) : 0;
+    const s2Highest = nSem2 > 0 ? Math.max(...withSem2.map((s) => s.sem2.grand)) : 0;
+
+    // Cumulative Stats
+    const bothPassed = withSem2.filter((s) => s.sem1.result.includes("PASSED") && s.sem2.result.includes("PASSED")).length;
+    const allCgpa = STUDENTS.map((s) => studentRanks[s.rollNo].cgpa);
+    const avgCgpa = parseFloat((allCgpa.reduce((a, v) => a + v, 0) / nTotal).toFixed(2));
+    const highestCgpa = Math.max(...allCgpa);
+
+    return {
+      nTotal,
+      nSem2,
+      s1: { passed: s1Passed, avgSgpa: s1AvgSgpa, avgGrand: s1AvgGrand, highest: s1Highest },
+      s2: { passed: s2Passed, avgSgpa: s2AvgSgpa, avgGrand: s2AvgGrand, highest: s2Highest },
+      cum: { passed: bothPassed, avgCgpa, highest: highestCgpa }
+    };
+  }, [studentRanks]);
+
+  // Subject Averages
+  const subjectAverages = useMemo(() => {
+    if (semContext === "1") {
+      return SUBJECTS_SEM1.map((sub) => {
+        const scores = STUDENTS.map((s) => s.sem1[sub.code]?.[2] || 0).filter(Boolean);
+        const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "0";
+        return { ...sub, avg: parseFloat(avg) };
+      });
+    } else if (semContext === "2") {
+      const withSem2 = STUDENTS.filter((s) => s.sem2 !== null);
+      return SUBJECTS_SEM2.map((sub) => {
+        const scores = withSem2.map((s) => s.sem2[sub.code]?.[2] || 0).filter(Boolean);
+        const avg = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "0";
+        return { ...sub, avg: parseFloat(avg) };
+      });
+    }
+    return [];
+  }, [semContext]);
+
+  // Layout Paddings
+  const px = isMobile ? 16 : 28;
+
+  // Grade Distribution Counts
+  const gradeDistribution = useMemo(() => {
+    const dist = { 1: [0,0,0,0,0,0], 2: [0,0,0,0,0,0], cum: [0,0,0,0,0,0] };
+    const getBandIndex = (gpa) => {
+      if (gpa >= 9) return 0;
+      if (gpa >= 8) return 1;
+      if (gpa >= 7) return 2;
+      if (gpa >= 6) return 3;
+      if (gpa >= 5) return 4;
+      return 5;
+    };
+
+    STUDENTS.forEach((s) => {
+      dist[1][getBandIndex(s.sem1.sgpa)]++;
+      if (s.sem2) {
+        dist[2][getBandIndex(s.sem2.sgpa)]++;
+      }
+      dist.cum[getBandIndex(studentRanks[s.rollNo].cgpa)]++;
+    });
+
+    return dist;
+  }, [studentRanks]);
+
   return (
-    <div style={{minHeight:"100vh",background:C.bg,color:C.text}}>
-
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <div style={{borderBottom:`1px solid ${C.border}`,background:C.surface}}>
-        <div style={{maxWidth:1080,margin:"0 auto",padding:`0 ${px}px`}}>
-
-          <div style={{padding:"20px 0 0",display:"flex",alignItems:"center",gap:14}}>
-            <div style={{flexShrink:0,width:40,height:40,borderRadius:10,
-              background:C.raised,border:`1px solid ${C.border}`,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              fontSize:18,color:C.gold}}>◈</div>
-            <div style={{minWidth:0}}>
-              <div style={{fontSize:isMobile?9:10,letterSpacing:2,color:C.muted,
-                fontWeight:600,textTransform:"uppercase",marginBottom:2}}>
-                Jharkhand University of Technology · R.V.S College, Jamshedpur
+    <div style={{
+      minHeight: "100vh",
+      background: C.bg,
+      color: C.text,
+      display: "flex",
+      flexDirection: "column",
+      "--focus-border": C.gold,
+      "--focus-ring": dark ? "rgba(192, 132, 252, 0.25)" : "rgba(124, 58, 237, 0.2)"
+    }}>
+      
+      {/* ── HEADER (Modern, shadcn-like) ─────────────────────────────────── */}
+      <header style={{
+        background: C.surface,
+        borderBottom: `1px solid ${C.border}`,
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)"
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: `16px ${px}px`, display: "flex", flexDirection: "column", gap: 14 }}>
+          
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{
+                width: 38,
+                height: 38,
+                borderRadius: 8,
+                background: C.raised,
+                border: `1px solid ${C.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                fontWeight: "bold",
+                color: C.gold
+              }}>
+                B
               </div>
-              <div style={{fontSize:isMobile?16:22,fontWeight:700,color:C.text,letterSpacing:-.3}}>
-                BCA 1<sup style={{fontSize:"60%"}}>st</sup> Semester — Result Portal
+              <div>
+                <div style={{ fontSize: isMobile ? 8 : 10, letterSpacing: 2, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                  Jharkhand University of Technology
+                </div>
+                <div style={{ fontSize: isMobile ? 15 : 20, fontWeight: 800, letterSpacing: "-0.02em", color: C.text, marginTop: 1 }}>
+                  BCA Academic Result Portal
+                </div>
               </div>
             </div>
-            
-            {/* Right side: session badge + THE ORIGINAL theme toggle */}
-            <div style={{marginLeft:"auto",flexShrink:0,display:"flex",
-              alignItems:"center",gap:12}}>
-              {!isMobile && <Pill color={C.gold}>Session 2024–25 · June 2025</Pill>}
 
-              {/* The Original Custom Theme Toggle */}
+            {/* Theme Toggle Switch */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button
-                onClick={()=>setDark(d=>!d)}
-                title={dark?"Switch to light mode":"Switch to dark mode"}
+                onClick={() => setDark(d => !d)}
                 style={{
-                  position:"relative",
-                  width:54,height:30,borderRadius:99,border:"none",cursor:"pointer",
-                  background: dark ? "#2a2a2a" : "#e2d9c6",
-                  transition:"background .3s ease",padding:0,flexShrink:0,
-                  boxShadow: dark
-                    ? "inset 0 1px 4px rgba(0,0,0,.7)"
-                    : "inset 0 1px 3px rgba(0,0,0,.18)",
-                }}>
-                <span style={{position:"absolute",left:7,top:"50%",
-                  transform:"translateY(-50%)",lineHeight:0,
-                  opacity: dark ? 0 : 1, transition:"opacity .25s"}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#a87a0a" strokeWidth="2.5" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  width: 38,
+                  height: 38,
+                  borderRadius: 8,
+                  border: `1px solid ${C.border}`,
+                  background: C.surface,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: C.text
+                }}
+                title={dark ? "Light Mode" : "Dark Mode"}
+              >
+                {dark ? (
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
-                </span>
-                <span style={{position:"absolute",right:7,top:"50%",
-                  transform:"translateY(-50%)",lineHeight:0,
-                  opacity: dark ? 1 : 0, transition:"opacity .25s"}}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7a7570" strokeWidth="2.5" strokeLinecap="round">
+                ) : (
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
                   </svg>
-                </span>
-                <span style={{
-                  position:"absolute", top:3, left: dark ? 27 : 3,
-                  width:24,height:24,borderRadius:"50%",
-                  background: dark ? "#d4a847" : "#d4a847",
-                  transition:"left .28s cubic-bezier(.4,0,.2,1)",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  boxShadow:"0 1px 5px rgba(0,0,0,.4)",
-                }}>
-                  {dark ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0e0e0e" strokeWidth="2.5" strokeLinecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
-                  ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0e0e0e" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                  )}
-                </span>
+                )}
               </button>
             </div>
           </div>
 
-          <div style={{display:"flex",gap:0,marginTop:16,overflowX:"auto",
-            scrollbarWidth:"none"}}>
-            {TABS.map((t,i)=>(
-              <button key={i} onClick={()=>setTab(i)} style={{
-                flexShrink:0,padding:isMobile?"10px 14px":"11px 22px",
-                border:"none",cursor:"pointer",background:"transparent",
-                fontSize:isMobile?11:13,fontWeight:600,
-                color: tab===i ? C.gold : C.muted,
-                borderBottom: tab===i ? `2px solid ${C.gold}` : "2px solid transparent",
-                transition:"all .18s",whiteSpace:"nowrap",
-                display:"flex",alignItems:"center",gap:6,
-              }}>
-                <span style={{fontSize:12,opacity:.8}}>{t.icon}</span>{t.label}
-              </button>
-            ))}
+          {/* Sub-header Controls: Semester Switch + Tab Selector */}
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+            
+            {/* Semester selector context (Shadcn Tabs list style) */}
+            <div style={{
+              display: "inline-flex",
+              background: C.raised,
+              padding: 3,
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              gap: 2
+            }}>
+              {[
+                { id: "1", label: "Semester 1" },
+                { id: "2", label: "Semester 2" },
+                { id: "cumulative", label: "Cumulative / Year 1" }
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSemContext(s.id)}
+                  style={{
+                    flex: 1,
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: semContext === s.id ? C.surface : "transparent",
+                    color: semContext === s.id ? C.gold : C.muted,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: semContext === s.id && !dark ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                    whiteSpace: "nowrap",
+                    transition: "color 0.2s, background-color 0.2s"
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Navigation Tabs */}
+            <div style={{ display: "flex", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
+              {[
+                { id: 0, label: "Search Result" },
+                { id: 1, label: "Toppers" },
+                { id: 2, label: "Class Analytics" },
+                { id: 3, label: "Student Ledger" }
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: `1px solid ${tab === t.id ? C.borderHi : "transparent"}`,
+                    background: tab === t.id ? C.raised : "transparent",
+                    color: tab === t.id ? C.text : C.muted,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    whiteSpace: "nowrap",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {renderTabIcon(t.id, tab === t.id, C)}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* ── CONTENT ─────────────────────────────────────────────────────── */}
-      <div style={{maxWidth:1080,margin:"0 auto",padding:`32px ${px}px 60px`}}>
+      {/* ── MAIN CONTENT AREA ────────────────────────────────────────────── */}
+      <main style={{ flex: 1, maxWidth: 1200, width: "100%", margin: "0 auto", padding: `24px ${px}px 80px`, boxSizing: "border-box" }}>
 
-        {/* ════ TAB 0 · FIND RESULT ════ */}
-        {tab===0 && (
-          <div style={{maxWidth:520,margin:"0 auto"}}>
+        {/* ════════════ TABS 0: SEARCH RESULT ════════════ */}
+        {tab === 0 && (
+          <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+            
+            {/* Input Form Card */}
+            <Card theme={C} className="gsap-fade-in">
+              <div style={{ padding: isMobile ? 20 : 28 }}>
+                <div style={{ marginBottom: 20 }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Lookup Academic Records</h3>
+                  <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Search results instantly using either university Roll Number or Student Name.</p>
+                </div>
 
-            <Card theme={C}>
-              <div style={{padding:isMobile?20:28}}>
-                <div style={{marginBottom:22}}>
-                  <div style={{fontSize:isMobile?18:22,fontWeight:700,color:C.text,marginBottom:4}}>
-                    Find Your Result
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", alignItems: "end", gap: 14 }}>
+                  <div>
+                    <Label theme={C}>University Roll No</Label>
+                    <Input
+                      theme={C}
+                      value={roll}
+                      onChange={(e) => setRoll(e.target.value)}
+                      placeholder="e.g. 24013590023"
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
                   </div>
-                  <div style={{color:C.muted,fontSize:13}}>
-                    Enter your university roll number or name below.
+
+                  <div style={{ textAlign: "center", paddingBottom: 10, fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: 1 }}>
+                    OR
+                  </div>
+
+                  <div>
+                    <Label theme={C}>Student Name</Label>
+                    <Input
+                      theme={C}
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Sumit Ghosh"
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
                   </div>
                 </div>
 
-                <div style={{marginBottom:14}}>
-                  <Label theme={C}>Roll Number</Label>
-                  <Input theme={C} value={roll} onChange={e=>setRoll(e.target.value)}
-                    placeholder="e.g. 24013590023"
-                    onKeyDown={e=>e.key==="Enter"&&search()} />
+                <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                  {(roll || name) && (
+                    <Button
+                      theme={C}
+                      variant="outline"
+                      onClick={() => {
+                        setRoll("");
+                        setName("");
+                        setFoundStudent(null);
+                        setSearchError("");
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                  <Button theme={C} onClick={() => handleSearch()}>
+                    Search Student
+                  </Button>
                 </div>
 
-                <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0",
-                  color:C.muted,fontSize:11,letterSpacing:1}}>
-                  <div style={{flex:1,height:1,background:C.border}}/>
-                  OR
-                  <div style={{flex:1,height:1,background:C.border}}/>
-                </div>
-
-                <div style={{marginBottom:20}}>
-                  <Label theme={C}>Student Name</Label>
-                  <Input theme={C} value={name} onChange={e=>setName(e.target.value)}
-                    placeholder="e.g. Sumit Ghosh"
-                    onKeyDown={e=>e.key==="Enter"&&search()} />
-                </div>
-
-                <button onClick={search} style={{
-                  width:"100%",padding:"13px",borderRadius:10,border:"none",
-                  background:C.gold,color:"#0e0e0e",fontSize:14,fontWeight:700,
-                  cursor:"pointer",letterSpacing:.3,transition:"opacity .15s",
-                }}>
-                  Search Result →
-                </button>
-
-                {err && (
-                  <div style={{marginTop:12,padding:"10px 14px",borderRadius:8,
-                    background:C.redBg,border:`1px solid ${C.red}40`,
-                    color:C.red,fontSize:13}}>
-                    {err}
+                {searchError && (
+                  <div style={{
+                    marginTop: 16,
+                    padding: "12px 16px",
+                    borderRadius: 8,
+                    background: C.red + "12",
+                    border: `1px solid ${C.red}35`,
+                    color: C.red,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    boxShadow: `0 2px 8px ${C.red}05`
+                  }}>
+                    <WarningIcon color={C.red} size={15} style={{ marginRight: 8 }} />
+                    {searchError}
                   </div>
                 )}
               </div>
             </Card>
 
-            {found && (
-              <div style={{marginTop:20}}>
-                <div style={{background:C.raised,border:`1px solid ${C.border}`,
-                  borderRadius:16,overflow:"hidden"}}>
-
-                  <div style={{padding:isMobile?"18px 20px":"22px 26px",
-                    borderBottom:`1px solid ${C.border}`,
-                    display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:10,letterSpacing:1.5,color:C.muted,
-                        fontWeight:600,textTransform:"uppercase",marginBottom:6}}>
-                        Student Result · 2024–25
+            {/* Results Report Card */}
+            {foundStudent && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="gsap-fade-in">
+                
+                {/* Student Summary Panel */}
+                <div style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12,
+                  overflow: "hidden"
+                }}>
+                  <div style={{ padding: "24px 28px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 16 }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.gold, textTransform: "uppercase" }}>
+                          Student Grade Sheet
+                        </span>
+                        <Pill color={C.muted}>Session 2024–25</Pill>
                       </div>
-                      <div style={{fontSize:isMobile?18:24,fontWeight:700,
-                        color:C.text,wordBreak:"break-word",lineHeight:1.2}}>
-                        {found.name}
-                      </div>
-                      <div style={{fontSize:12,color:C.muted,marginTop:4,
-                        fontFamily:"monospace"}}>{found.rollNo}</div>
+                      <h2 style={{ margin: "6px 0 2px", fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
+                        {foundStudent.name}
+                      </h2>
+                      <span style={{ fontFamily: "monospace", fontSize: 13, color: C.muted }}>
+                        Roll No: {foundStudent.rollNo}
+                      </span>
                     </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontSize:9,color:C.muted,letterSpacing:1,
-                        textTransform:"uppercase",marginBottom:4}}>Class Rank</div>
-                      <div style={{fontSize:isMobile?32:40,fontWeight:800,
-                        color:C.gold,lineHeight:1}}>#{found.rank}</div>
+
+                    {/* Comparative Rank Display */}
+                    <div style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: isMobile ? 12 : 14,
+                      marginTop: isMobile ? 8 : 0,
+                      justifyContent: isMobile ? "space-between" : "flex-end",
+                      width: isMobile ? "100%" : "auto"
+                    }}>
+                      <div style={{ textAlign: isMobile ? "left" : "right", flex: isMobile ? "1" : "none" }}>
+                        <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 1 Rank</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>#{studentRanks[foundStudent.rollNo].r1}</div>
+                      </div>
+                      {!isMobile && <div style={{ width: 1, background: C.border }} />}
+                      <div style={{ textAlign: isMobile ? "left" : "right", flex: isMobile ? "1" : "none" }}>
+                        <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 2 Rank</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: foundStudent.sem2 ? C.text : C.dim }}>
+                          #{studentRanks[foundStudent.rollNo].r2}
+                        </div>
+                      </div>
+                      {!isMobile && <div style={{ width: 1, background: C.border }} />}
+                      <div style={{ textAlign: isMobile ? "left" : "right", flex: isMobile ? "1" : "none" }}>
+                        <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Year 1 Rank</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: C.gold }}>#{studentRanks[foundStudent.rollNo].rc}</div>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:1,background:C.border}}>
+                  {/* Summary Metric Stats */}
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", background: C.border, gap: 1 }}>
                     {[
-                      {l:"Grand Total", v:`${found.grand}`, sub:"/800"},
-                      {l:"SGPA",        v:`${found.sgpa}`,  sub:""},
-                      {l:"Theory",      v:`${found.theory}`,sub:"/600"},
-                      {l:"Practical",   v:`${found.practical}`,sub:"/200"},
-                    ].map((s,i)=>(
-                      <div key={i} style={{background:C.raised,padding:"16px 14px",textAlign:"center"}}>
-                        <div style={{fontSize:10,color:C.muted,fontWeight:600,
-                          textTransform:"uppercase",letterSpacing:.8,marginBottom:4}}>{s.l}</div>
-                        <div style={{fontSize:isMobile?20:24,fontWeight:700,color:C.gold}}>
-                          {s.v}<span style={{fontSize:13,color:C.muted,fontWeight:400}}>{s.sub}</span>
+                      { label: "Semester 1 SGPA", val: foundStudent.sem1.sgpa, sub: "Pass", color: C.text },
+                      {
+                        label: "Semester 2 SGPA",
+                        val: foundStudent.sem2 ? foundStudent.sem2.sgpa : "N/A",
+                        sub: foundStudent.sem2 ? "Pass" : "Held / Missing",
+                        color: foundStudent.sem2 ? C.text : C.muted
+                      },
+                      { label: "Cumulative CGPA", val: studentRanks[foundStudent.rollNo].cgpa, sub: "Overall", color: C.gold },
+                      {
+                        label: "Combined Total",
+                        val: `${foundStudent.sem1.grand + (foundStudent.sem2 ? foundStudent.sem2.grand : 0)}`,
+                        sub: `/ ${foundStudent.sem2 ? 1600 : 800}`,
+                        color: C.text
+                      }
+                    ].map((m, idx) => (
+                      <div key={idx} style={{ background: C.surface, padding: 18, textAlign: "center" }}>
+                        <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                          {m.label}
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: m.color }}>
+                          {m.val}
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {m.sub}
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  <div style={{padding:isMobile?"18px 20px":"20px 26px"}}>
-                    <Label theme={C}>Subject-wise Performance</Label>
-                    {SUBJECTS.map(sub=>{
-                      const d=found[sub.code];
-                      if(!d) return null;
-                      const [,,total]=d;
-                      const max=sub.maxFin+sub.maxInt;
-                      const grade=getGrade(total,max);
-                      const gc=gradeColor(grade);
-                      const pct=Math.round((total/max)*100);
-                      return (
-                        <div key={sub.code} style={{marginBottom:14}}>
-                          <div style={{display:"flex",justifyContent:"space-between",
-                            alignItems:"center",marginBottom:6,gap:8}}>
-                            <div style={{minWidth:0}}>
-                              <span style={{fontSize:10,color:C.muted,
-                                fontFamily:"monospace",marginRight:6}}>{sub.code}</span>
-                              <span style={{fontSize:isMobile?11:12,color:C.text}}>{sub.name}</span>
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-                              <span style={{fontSize:12,color:C.muted}}>{total}/{max}</span>
-                              <span style={{
-                                padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                                background:gc+"18",border:`1px solid ${gc}40`,color:gc}}>
-                                {grade}
-                              </span>
-                            </div>
-                          </div>
-                          <div style={{background:C.bg,borderRadius:4,height:4,overflow:"hidden"}}>
-                            <div style={{width:`${pct}%`,height:"100%",
-                              background:gc,borderRadius:4,transition:"width .6s ease"}}/>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div style={{padding:isMobile?"0 20px 20px":"0 26px 24px"}}>
-                    <div style={{
-                      padding:"12px 16px",borderRadius:10,textAlign:"center",
-                      fontWeight:700,fontSize:13,letterSpacing:.3,
-                      background: found.result.includes("PASSED") ? C.greenBg : C.raised,
-                      border:`1px solid ${found.result.includes("PASSED")?C.green+"50":C.border}`,
-                      color: found.result.includes("PASSED") ? C.green : C.muted,
-                    }}>
-                      {found.result.includes("PASSED") ? "✓  " : "— "}{found.result}
-                    </div>
-                  </div>
                 </div>
+
+                {/* Comparative View / Specific Semester Tables */}
+                {(semContext === "1" || semContext === "cumulative") && (
+                  <Card theme={C}>
+                    <div style={{ padding: 24 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          Semester 1 Results Summary
+                        </h4>
+                        <Pill color={foundStudent.sem1.result.includes("PASSED") ? C.green : C.gold}>
+                          {foundStudent.sem1.result}
+                        </Pill>
+                      </div>
+
+                      {/* Sem 1 Table */}
+                      {isMobile ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          {SUBJECTS_SEM1.map((sub) => {
+                            const scoreData = foundStudent.sem1[sub.code];
+                            if (!scoreData) return null;
+                            const [ext, sec, tot] = scoreData;
+                            const maxVal = sub.maxFin + sub.maxInt;
+                            const grade = getGrade(tot, maxVal);
+                            const gColor = gradeColor(grade);
+
+                            return (
+                              <div key={sub.code} style={{ background: C.raised, borderRadius: 8, padding: 12, border: `1px solid ${C.border}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                                  <div>
+                                    <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: C.gold }}>{sub.code}</span>
+                                    <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginTop: 2 }}>{sub.name}</div>
+                                  </div>
+                                  <span style={{
+                                    padding: "2px 6px",
+                                    borderRadius: 4,
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    background: gColor + "15",
+                                    border: `1px solid ${gColor}35`,
+                                    color: gColor
+                                  }}>
+                                    {grade}
+                                  </span>
+                                </div>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, textAlign: "center", fontSize: 11, borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4 }}>
+                                  <div>
+                                    <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>CREDITS</div>
+                                    <div style={{ color: C.text, fontWeight: 600, marginTop: 2 }}>{sub.credits}</div>
+                                  </div>
+                                  <div>
+                                    <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>EXTERNAL</div>
+                                    <div style={{ color: ext === null ? C.red : C.text, fontWeight: 600, marginTop: 2 }}>
+                                      {ext !== null ? ext : "Ab"}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>INTERNAL</div>
+                                    <div style={{ color: C.text, fontWeight: 600, marginTop: 2 }}>{sec}</div>
+                                  </div>
+                                  <div>
+                                    <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>TOTAL</div>
+                                    <div style={{ color: C.text, fontWeight: 700, marginTop: 2 }}>{tot}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                            <thead>
+                              <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Subject Name</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Credits</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>External (70/20)</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Internal (30)</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Total</th>
+                                <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Grade</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {SUBJECTS_SEM1.map((sub) => {
+                                const scoreData = foundStudent.sem1[sub.code];
+                                if (!scoreData) return null;
+                                const [ext, sec, tot] = scoreData;
+                                const maxVal = sub.maxFin + sub.maxInt;
+                                const grade = getGrade(tot, maxVal);
+                                const gColor = gradeColor(grade);
+
+                                return (
+                                  <tr key={sub.code} style={{ borderBottom: `1px solid ${C.border}` }}>
+                                    <td style={{ padding: "10px 12px", fontFamily: "monospace", fontWeight: 600, color: C.muted }}>{sub.code}</td>
+                                    <td style={{ padding: "10px 12px", color: C.text }}>{sub.name}</td>
+                                    <td style={{ padding: "10px 12px", textAlign: "center", color: C.muted }}>{sub.credits}</td>
+                                    <td style={{ padding: "10px 12px", textAlign: "center", color: ext === null ? C.red : C.text }}>
+                                      {ext !== null ? ext : "Absent"}
+                                    </td>
+                                    <td style={{ padding: "10px 12px", textAlign: "center", color: C.text }}>{sec}</td>
+                                    <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 700, color: C.text }}>{tot}</td>
+                                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                                      <span style={{
+                                        padding: "2px 6px",
+                                        borderRadius: 4,
+                                        fontSize: 11,
+                                        fontWeight: 800,
+                                        background: gColor + "15",
+                                        border: `1px solid ${gColor}35`,
+                                        color: gColor
+                                      }}>
+                                        {grade}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Theory / Practical summary Sem 1 */}
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, marginTop: 14, fontSize: 12, color: C.muted, fontWeight: 500 }}>
+                        <div>Theory: <strong style={{ color: C.text }}>{foundStudent.sem1.theory}/600</strong></div>
+                        <div>Practical: <strong style={{ color: C.text }}>{foundStudent.sem1.practical}/200</strong></div>
+                        <div>SGPA: <strong style={{ color: C.gold }}>{foundStudent.sem1.sgpa}</strong></div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Semester 2 Table Display */}
+                {(semContext === "2" || semContext === "cumulative") && (
+                  <Card theme={C}>
+                    <div style={{ padding: 24 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          Semester 2 Results Summary
+                        </h4>
+                        {foundStudent.sem2 ? (
+                          <Pill color={foundStudent.sem2.result.includes("PASSED") ? C.green : C.gold}>
+                            {foundStudent.sem2.result}
+                          </Pill>
+                        ) : (
+                          <Pill color={C.red}>Held / No Records</Pill>
+                        )}
+                      </div>
+
+                      {foundStudent.sem2 ? (
+                        <>
+                          {isMobile ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                              {SUBJECTS_SEM2.map((sub) => {
+                                const scoreData = foundStudent.sem2[sub.code];
+                                if (!scoreData) return null;
+                                const [ext, sec, tot] = scoreData;
+                                const maxVal = sub.maxFin + sub.maxInt;
+                                const grade = getGrade(tot, maxVal);
+                                const gColor = gradeColor(grade);
+
+                                return (
+                                  <div key={sub.code} style={{ background: C.raised, borderRadius: 8, padding: 12, border: `1px solid ${C.border}` }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                                      <div>
+                                        <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 700, color: C.gold }}>{sub.code}</span>
+                                        <div style={{ fontWeight: 700, color: C.text, fontSize: 13, marginTop: 2 }}>{sub.name}</div>
+                                      </div>
+                                      <span style={{
+                                        padding: "2px 6px",
+                                        borderRadius: 4,
+                                        fontSize: 10,
+                                        fontWeight: 800,
+                                        background: gColor + "15",
+                                        border: `1px solid ${gColor}35`,
+                                        color: gColor
+                                      }}>
+                                        {grade}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, textAlign: "center", fontSize: 11, borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4 }}>
+                                      <div>
+                                        <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>CREDITS</div>
+                                        <div style={{ color: C.text, fontWeight: 600, marginTop: 2 }}>{sub.credits}</div>
+                                      </div>
+                                      <div>
+                                        <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>EXTERNAL</div>
+                                        <div style={{ color: ext === null ? C.red : C.text, fontWeight: 600, marginTop: 2 }}>
+                                          {ext !== null ? ext : "Ab"}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>INTERNAL</div>
+                                        <div style={{ color: C.text, fontWeight: 600, marginTop: 2 }}>{sec}</div>
+                                      </div>
+                                      <div>
+                                        <div style={{ color: C.muted, fontSize: 9, fontWeight: 600 }}>TOTAL</div>
+                                        <div style={{ color: C.text, fontWeight: 700, marginTop: 2 }}>{tot}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div style={{ overflowX: "auto" }}>
+                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                                <thead>
+                                  <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Subject Name</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Credits</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>External (70/20)</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Internal (30)</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Total</th>
+                                    <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Grade</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {SUBJECTS_SEM2.map((sub) => {
+                                    const scoreData = foundStudent.sem2[sub.code];
+                                    if (!scoreData) return null;
+                                    const [ext, sec, tot] = scoreData;
+                                    const maxVal = sub.maxFin + sub.maxInt;
+                                    const grade = getGrade(tot, maxVal);
+                                    const gColor = gradeColor(grade);
+
+                                    return (
+                                      <tr key={sub.code} style={{ borderBottom: `1px solid ${C.border}` }}>
+                                        <td style={{ padding: "10px 12px", fontFamily: "monospace", fontWeight: 600, color: C.muted }}>{sub.code}</td>
+                                        <td style={{ padding: "10px 12px", color: C.text }}>{sub.name}</td>
+                                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.muted }}>{sub.credits}</td>
+                                        <td style={{ padding: "10px 12px", textAlign: "center", color: ext === null ? C.red : C.text }}>
+                                          {ext !== null ? ext : "Absent"}
+                                        </td>
+                                        <td style={{ padding: "10px 12px", textAlign: "center", color: C.text }}>{sec}</td>
+                                        <td style={{ padding: "10px 12px", textAlign: "center", fontWeight: 700, color: C.text }}>{tot}</td>
+                                        <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                                          <span style={{
+                                            padding: "2px 6px",
+                                            borderRadius: 4,
+                                            fontSize: 11,
+                                            fontWeight: 800,
+                                            background: gColor + "15",
+                                            border: `1px solid ${gColor}35`,
+                                            color: gColor
+                                          }}>
+                                            {grade}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+
+                          {/* Theory / Practical summary Sem 2 */}
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, marginTop: 14, fontSize: 12, color: C.muted, fontWeight: 500 }}>
+                            <div>Theory: <strong style={{ color: C.text }}>{foundStudent.sem2.theory}/600</strong></div>
+                            <div>Practical: <strong style={{ color: C.text }}>{foundStudent.sem2.practical}/200</strong></div>
+                            <div>SGPA: <strong style={{ color: C.gold }}>{foundStudent.sem2.sgpa}</strong></div>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{
+                          padding: "30px 16px",
+                          textAlign: "center",
+                          color: C.muted,
+                          fontSize: 14,
+                          background: C.raised,
+                          border: `1px dashed ${C.border}`,
+                          borderRadius: 8
+                        }}>
+                          Semester 2 results have not been declared/provided for this student yet.
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
               </div>
             )}
           </div>
         )}
 
-        {/* ════ TAB 1 · TOPPERS ════ */}
-        {tab===1 && (
-          <div>
-            <div style={{marginBottom:28}}>
-              <Label theme={C}>View toppers by subject</Label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:8}}>
-                {[
-                  {key:"grand", label:"Overall"},
-                  {key:"BSC101",label:"English"},
-                  {key:"BSC102",label:"Mathematics"},
-                  {key:"BCA101",label:"Statistics"},
-                  {key:"BCA102",label:"DCF"},
-                  {key:"BCA103",label:"C Programming"},
-                  {key:"AUC101",label:"Holistic Ed."},
-                ].map(opt=>(
-                  <button key={opt.key} onClick={()=>setTopSub(opt.key)} style={{
-                    padding:"7px 16px",borderRadius:99,border:"none",cursor:"pointer",
-                    fontSize:12,fontWeight:600,transition:"all .15s",
-                    background: topSub===opt.key ? C.gold : C.raised,
-                    color:      topSub===opt.key ? "#0e0e0e" : C.muted,
-                    border: topSub===opt.key ? `1px solid ${C.gold}` : `1px solid ${C.border}`,
-                  }}>{opt.label}</button>
-                ))}
+        {/* ════════════ TABS 1: CLASS TOPPERS ════════════ */}
+        {tab === 1 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }} className="gsap-fade-in">
+            
+            {/* Toppers Filter Bar */}
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 14 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Academic Toppers</h3>
+                <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Browse the outstanding students of the class by overall and subject-wise lists.</p>
               </div>
+
+              {/* Dynamic Subject Selector based on Sem Context */}
+              {semContext !== "cumulative" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Label theme={C} style={{ marginBottom: 0 }}>Subject Filters:</Label>
+                  <Select
+                    theme={C}
+                    value={topperSubject}
+                    onChange={(e) => setTopperSubject(e.target.value)}
+                  >
+                    <option value="grand">Overall Grand Total</option>
+                    {semContext === "1"
+                      ? SUBJECTS_SEM1.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)
+                      : SUBJECTS_SEM2.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)
+                    }
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {isMobile ? (
-              <div style={{marginBottom:16}}>
-                {[toppers[0],toppers[1],toppers[2]].map((s,i)=>{
-                  if(!s) return null;
-                  const medals=["🥇","🥈","🥉"];
-                  const score=topSub==="grand"?s.grand:s.subjectScore;
-                  const max=topSub==="grand"?800:100;
-                  return (
-                    <Card theme={C} key={s.rollNo} style={{marginBottom:10}}>
-                      <div style={{padding:"14px 18px",display:"flex",
-                        alignItems:"center",gap:14}}>
-                        <div style={{fontSize:26}}>{medals[i]}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,color:C.text,fontSize:14,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            {s.name}
-                          </div>
-                          <div style={{fontSize:11,color:C.muted,marginTop:1,
-                            fontFamily:"monospace"}}>{s.rollNo}</div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontSize:22,fontWeight:700,color:C.gold}}>{score}</div>
-                          <div style={{fontSize:10,color:C.muted}}>/{max} · SGPA {s.sgpa}</div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{display:"flex",gap:12,justifyContent:"center",
-                alignItems:"flex-end",marginBottom:24}}>
-                {[toppers[1],toppers[0],toppers[2]].map((s,pi)=>{
-                  if(!s) return null;
-                  const medals=["🥈","🥇","🥉"];
-                  const heights=[200,250,170];
-                  const borderColors=["#8a8a8a","#d4a847","#a07050"];
-                  const score=topSub==="grand"?s.grand:s.subjectScore;
-                  const max=topSub==="grand"?800:100;
-                  return (
-                    <div key={s.rollNo} style={{
-                      width:210,minHeight:heights[pi],background:C.surface,
-                      border:`1px solid ${borderColors[pi]}50`,borderRadius:14,
-                      padding:"24px 18px",textAlign:"center",
-                      display:"flex",flexDirection:"column",justifyContent:"flex-end",
-                      boxShadow: pi===1 ? `0 0 40px ${C.gold}18` : "none",
-                    }}>
-                      <div style={{fontSize:34,marginBottom:10}}>{medals[pi]}</div>
-                      <div style={{fontSize:13,fontWeight:700,color:C.text,
-                        marginBottom:3,lineHeight:1.3}}>{s.name}</div>
-                      <div style={{fontSize:10,color:C.muted,marginBottom:14,
-                        fontFamily:"monospace"}}>{s.rollNo}</div>
-                      <div style={{fontSize:32,fontWeight:800,color:borderColors[pi],lineHeight:1}}>
-                        {score}
-                      </div>
-                      <div style={{fontSize:11,color:C.muted,marginTop:4}}>
-                        /{max} · SGPA {s.sgpa}
+            {/* Podium (Top 3 Visual Representation) */}
+            {!isMobile && toppersList.length >= 3 && topperSubject === "grand" && (
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-end",
+                gap: 16,
+                padding: "20px 0 40px",
+                borderBottom: `1px solid ${C.border}`
+              }}>
+                {/* 2nd Place */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ textAlign: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: C.muted + "15",
+                        border: `2px solid ${C.muted}`,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: C.text,
+                        fontWeight: 800,
+                        fontSize: 14,
+                        marginBottom: 6
+                      }}>
+                        2
                       </div>
                     </div>
-                  );
-                })}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {toppersList[1].name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>{toppersList[1].rollNo}</div>
+                  </div>
+                  <div style={{
+                    width: 160,
+                    height: 140,
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderTop: `3px solid ${C.muted}`,
+                    borderRadius: "8px 8px 0 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: C.text }}>
+                      {semContext === "1" ? toppersList[1].sem1.grand : semContext === "2" ? toppersList[1].sem2.grand : toppersList[1].cgpa}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted }}>
+                      {semContext === "cumulative" ? "CGPA" : "/ 800 Marks"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 1st Place (Gold Podium - taller and highlighted) */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ textAlign: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: "50%",
+                        background: C.gold + "15",
+                        border: `2px solid ${C.gold}`,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: C.gold,
+                        fontWeight: 800,
+                        fontSize: 16,
+                        marginBottom: 6,
+                        boxShadow: `0 0 16px ${C.gold}30`
+                      }}>
+                        1
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: C.text, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {toppersList[0].name}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{toppersList[0].rollNo}</div>
+                  </div>
+                  <div style={{
+                    width: 180,
+                    height: 185,
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderTop: `4px solid ${C.gold}`,
+                    borderRadius: "8px 8px 0 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    boxShadow: dark ? "0 0 30px rgba(192, 132, 252, 0.12)" : "0 8px 30px rgba(124, 58, 237, 0.08)"
+                  }}>
+                    <div style={{ fontSize: 36, fontWeight: 900, color: C.gold }}>
+                      {semContext === "1" ? toppersList[0].sem1.grand : semContext === "2" ? toppersList[0].sem2.grand : toppersList[0].cgpa}
+                    </div>
+                    <div style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                      {semContext === "cumulative" ? "CGPA" : "/ 800 Marks"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3rd Place */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ textAlign: "center", marginBottom: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "center" }}>
+                      <div style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: "#b4530915",
+                        border: "2px solid #b45309",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#f59e0b",
+                        fontWeight: 800,
+                        fontSize: 14,
+                        marginBottom: 6
+                      }}>
+                        3
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {toppersList[2].name}
+                    </div>
+                    <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>{toppersList[2].rollNo}</div>
+                  </div>
+                  <div style={{
+                    width: 160,
+                    height: 110,
+                    background: C.surface,
+                    border: `1px solid ${C.border}`,
+                    borderTop: `3px solid #b45309`,
+                    borderRadius: "8px 8px 0 0",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: C.text }}>
+                      {semContext === "1" ? toppersList[2].sem1.grand : semContext === "2" ? toppersList[2].sem2.grand : toppersList[2].cgpa}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted }}>
+                      {semContext === "cumulative" ? "CGPA" : "/ 800 Marks"}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {toppers.slice(3).map((s,i)=>{
-              const score=topSub==="grand"?s.grand:s.subjectScore;
-              const max=topSub==="grand"?800:100;
-              return (
-                <Card theme={C} key={s.rollNo} style={{marginBottom:8}}>
-                  <div style={{padding:"12px 18px",display:"flex",
-                    alignItems:"center",gap:12}}>
-                    <div style={{fontSize:15,fontWeight:800,color:C.muted,
-                      width:24,flexShrink:0}}>#{i+4}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:600,color:C.text,overflow:"hidden",
-                        textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
-                      <div style={{fontSize:11,color:C.muted,fontFamily:"monospace",
-                        marginTop:1}}>{s.rollNo}</div>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <div style={{fontSize:16,fontWeight:700,color:C.gold}}>
-                        {score}<span style={{fontSize:11,color:C.muted}}>/{max}</span>
+            {/* List of remaining top students */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Label theme={C}>Toppers Ledger</Label>
+              {toppersList.map((st, idx) => {
+                let score = 0;
+                let max = 100;
+                if (topperSubject === "grand") {
+                  score = semContext === "1" ? st.sem1.grand : semContext === "2" ? st.sem2.grand : st.cgpa;
+                  max = semContext === "cumulative" ? 10 : 800;
+                } else {
+                  score = semContext === "1" ? st.sem1[topperSubject]?.[2] || 0 : st.sem2[topperSubject]?.[2] || 0;
+                  max = 100;
+                }
+
+                return (
+                  <Card theme={C} key={st.rollNo} style={{ transition: "border-color 0.2s" }}>
+                    <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}>
+                          {idx < 3 ? (
+                            <div style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              background: idx === 0 ? C.gold + "15" : idx === 1 ? C.muted + "15" : "#b4530915",
+                              border: `1.5px solid ${idx === 0 ? C.gold : idx === 1 ? C.muted : "#b45309"}`,
+                              color: idx === 0 ? C.gold : idx === 1 ? C.text : "#f59e0b",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 800,
+                              fontSize: 11
+                            }}>
+                              {idx + 1}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: 12, fontWeight: "600", color: C.muted }}>
+                              #{idx + 1}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <div
+                            onClick={() => viewStudent(st)}
+                            style={{ fontWeight: 700, color: C.text, cursor: "pointer", textDecoration: "hover underline" }}
+                          >
+                            {st.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 1 }}>{st.rollNo}</div>
+                        </div>
                       </div>
-                      <div style={{fontSize:11,color:C.muted}}>SGPA {s.sgpa}</div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{ fontSize: 18, fontWeight: 800, color: idx === 0 ? C.gold : C.text }}>
+                            {score}
+                          </span>
+                          <span style={{ fontSize: 12, color: C.muted }}>/{max}</span>
+                        </div>
+
+                        {!isMobile && (
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <Pill color={C.gold}>
+                              SGPA/CGPA: {semContext === "1" ? st.sem1.sgpa : semContext === "2" ? st.sem2.sgpa : st.cgpa}
+                            </Pill>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Subject-wise averages summary charts */}
+            {semContext !== "cumulative" && (
+              <div style={{ marginTop: 16 }}>
+                <Card theme={C}>
+                  <div style={{ padding: 24 }}>
+                    <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Subject Average Scores (Class-wide)
+                    </h4>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {subjectAverages.map((sub, idx) => {
+                        const colors = dark ? [
+                          "#c084fc", // Vibrant lavender
+                          "#a78bfa", // Medium lavender
+                          "#818cf8", // Periwinkle
+                          "#6366f1", // Indigo
+                          "#4f46e5", // Deep indigo
+                          "#f472b6", // Rose pink
+                          "#fb7185", // Pink warning
+                          "#38bdf8", // Sky blue
+                          "#2dd4bf"  // Teal
+                        ] : [
+                          "#7c3aed", // Violet
+                          "#8b5cf6", // Purple
+                          "#4f46e5", // Indigo
+                          "#2563eb", // Blue
+                          "#1d4ed8", // Deep blue
+                          "#db2777", // Pink
+                          "#e11d48", // Rose
+                          "#0284c7", // Sky blue
+                          "#0d9488"  // Teal
+                        ];
+                        const c = colors[idx % colors.length];
+                        const maxVal = sub.maxFin + sub.maxInt;
+                        const pct = ((sub.avg / maxVal) * 100).toFixed(0);
+
+                        return (
+                          <div key={sub.code}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}>
+                              <span style={{ color: C.text, fontWeight: 500 }}>
+                                {sub.name} <span style={{ color: C.muted, fontFamily: "monospace", fontSize: 10 }}>({sub.code})</span>
+                              </span>
+                              <strong style={{ color: c }}>{sub.avg} / {maxVal} ({pct}%)</strong>
+                            </div>
+                            <div style={{ height: 6, background: C.raised, borderRadius: 99, overflow: "hidden" }}>
+                              <div className="gsap-progress-bar" data-pct={pct} style={{ width: "0%", height: "100%", background: c, borderRadius: 99 }} />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </Card>
-              );
-            })}
+              </div>
+            )}
 
-            <div style={{marginTop:36}}>
+          </div>
+        )}
+
+        {/* ════════════ TABS 2: CLASS ANALYTICS ════════════ */}
+        {tab === 2 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }} className="gsap-fade-in">
+            
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Cohort Analytics</h3>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Detailed comparative report showing class-wide performance between Semesters 1 and 2.</p>
+            </div>
+
+            {/* Key Comparison Cards Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16 }}>
+              
+              {/* Passed rate compare */}
               <Card theme={C}>
-                <div style={{padding:isMobile?18:24}}>
-                  <Label theme={C}>Subject Average Scores  (out of 100)</Label>
-                  <div style={{marginTop:14}}>
-                    {subjectAvg.map((s,i)=>{
-                      const pct=parseFloat(s.avg);
-                      const gc=["#d4a847","#9ab870","#5b9eb8","#8e78c4","#b87858","#6da882"][i];
+                <div style={{ padding: 20 }}>
+                  <Label theme={C}>Pass Percentage</Label>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: C.text }}>
+                      {((stats.s2.passed / stats.nSem2) * 100).toFixed(0)}%
+                    </span>
+                    <span style={{ fontSize: 12, color: C.muted }}>Sem 2 Pass Rate</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px solid ${C.border}`, marginTop: 14, paddingTop: 10, fontSize: 12, color: C.muted }}>
+                    <span>Sem 1: {((stats.s1.passed / stats.nTotal) * 100).toFixed(0)}%</span>
+                    <span style={{ color: C.green }}>
+                      Diff: {(((stats.s2.passed / stats.nSem2) - (stats.s1.passed / stats.nTotal)) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* SGPA compare */}
+              <Card theme={C}>
+                <div style={{ padding: 20 }}>
+                  <Label theme={C}>Class Average SGPA</Label>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: C.gold }}>
+                      {stats.s2.avgSgpa}
+                    </span>
+                    <span style={{ fontSize: 12, color: C.muted }}>Sem 2 average</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px solid ${C.border}`, marginTop: 14, paddingTop: 10, fontSize: 12, color: C.muted }}>
+                    <span>Sem 1 Avg: {stats.s1.avgSgpa}</span>
+                    <span style={{ color: stats.s2.avgSgpa - stats.s1.avgSgpa >= 0 ? C.green : C.red }}>
+                      Delta: {(stats.s2.avgSgpa - stats.s1.avgSgpa).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Highest score compare */}
+              <Card theme={C}>
+                <div style={{ padding: 20 }}>
+                  <Label theme={C}>Highest SGPA/CGPA</Label>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 10 }}>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: C.text }}>
+                      {stats.cum.highest}
+                    </span>
+                    <span style={{ fontSize: 12, color: C.muted }}>Top CGPA (Year 1)</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px solid ${C.border}`, marginTop: 14, paddingTop: 10, fontSize: 12, color: C.muted }}>
+                    <span>Sem 1 Max: 9.27</span>
+                    <span>Sem 2 Max: 8.18</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            {/* GPA Distribution charts side by side */}
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
+              
+              <Card theme={C}>
+                <div style={{ padding: 24 }}>
+                  <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Semester 1 GPA Distribution
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {[
+                      { band: "Outstanding (9.0+)", count: gradeDistribution[1][0], color: bandColors[0] },
+                      { band: "Excellent (8.0–8.9)", count: gradeDistribution[1][1], color: bandColors[1] },
+                      { band: "Very Good (7.0–7.9)", count: gradeDistribution[1][2], color: bandColors[2] },
+                      { band: "Good (6.0–6.9)", count: gradeDistribution[1][3], color: bandColors[3] },
+                      { band: "Average (5.0–5.9)", count: gradeDistribution[1][4], color: bandColors[4] },
+                      { band: "Below Average (< 5.0)", count: gradeDistribution[1][5], color: bandColors[5] }
+                    ].map((g) => {
+                      const pct = ((g.count / stats.nTotal) * 100).toFixed(0);
                       return (
-                        <div key={s.code} style={{marginBottom:14}}>
-                          <div style={{display:"flex",justifyContent:"space-between",
-                            marginBottom:6}}>
-                            <span style={{fontSize:13,color:C.text}}>{s.name}</span>
-                            <span style={{fontSize:13,fontWeight:700,color:gc}}>{s.avg}</span>
+                        <div key={g.band}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                            <span style={{ color: C.text }}>{g.band}</span>
+                            <strong style={{ color: g.color }}>{g.count} students ({pct}%)</strong>
                           </div>
-                          <div style={{background:C.bg,borderRadius:4,height:5,overflow:"hidden"}}>
-                            <div style={{width:`${pct}%`,height:"100%",
-                              background:gc,borderRadius:4}}/>
+                          <div style={{ height: 6, background: C.raised, borderRadius: 99, overflow: "hidden" }}>
+                            <div className="gsap-progress-bar" data-pct={pct} style={{ width: "0%", height: "100%", background: g.color, borderRadius: 99 }} />
                           </div>
                         </div>
                       );
@@ -469,245 +1459,424 @@ export default function BCAPortal() {
                   </div>
                 </div>
               </Card>
-            </div>
-          </div>
-        )}
 
-        {/* ════ TAB 2 · ANALYTICS ════ */}
-        {tab===2 && (
-          <div>
-            <div style={{display:"grid",
-              gridTemplateColumns:isMobile?"repeat(2,1fr)":"repeat(3,1fr)",
-              gap:12,marginBottom:24}}>
-              {[
-                {l:"Total Students",    v:stats.total,    sub:"enrolled"},
-                {l:"Passed & Promoted",v:stats.passed,   sub:"students"},
-                {l:"Promoted Only",    v:stats.promoted,  sub:"students"},
-                {l:"Average SGPA",     v:stats.avgSGPA,   sub:"class avg"},
-                {l:"Avg Grand Total",  v:stats.avgGrand,  sub:"out of 800"},
-                {l:"Highest Score",    v:stats.highest,   sub:"out of 800"},
-              ].map((s,i)=>(
-                <Card theme={C} key={i}>
-                  <div style={{padding:"20px 18px"}}>
-                    <div style={{fontSize:10,color:C.muted,fontWeight:600,
-                      textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>{s.l}</div>
-                    <div style={{fontSize:isMobile?26:32,fontWeight:800,color:C.gold,lineHeight:1}}>
-                      {s.v}
-                    </div>
-                    <div style={{fontSize:11,color:C.muted,marginTop:4}}>{s.sub}</div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            <Card theme={C} style={{marginBottom:16}}>
-              <div style={{padding:isMobile?18:24}}>
-                <Label theme={C}>Grade Distribution  (by SGPA band)</Label>
-                <div style={{marginTop:14}}>
-                  {[
-                    {r:"9.0+",    l:"Outstanding",  color:"#d4a847", f:s=>s.sgpa>=9},
-                    {r:"8.0–8.9", l:"Excellent",    color:"#9ab870", f:s=>s.sgpa>=8&&s.sgpa<9},
-                    {r:"7.0–7.9", l:"Very Good",    color:"#5b9eb8", f:s=>s.sgpa>=7&&s.sgpa<8},
-                    {r:"6.0–6.9", l:"Good",         color:"#8e78c4", f:s=>s.sgpa>=6&&s.sgpa<7},
-                    {r:"5.0–5.9", l:"Average",      color:"#b87858", f:s=>s.sgpa>=5&&s.sgpa<6},
-                    {r:"Below 5", l:"Below Average", color:"#a05050", f:s=>s.sgpa<5},
-                  ].map(g=>{
-                    const students=ranked.filter(g.f);
-                    const pct=(students.length/stats.total)*100;
-                    return (
-                      <div key={g.r} style={{marginBottom:14}}>
-                        <div style={{display:"flex",justifyContent:"space-between",
-                          marginBottom:5,flexWrap:"wrap",gap:4}}>
-                          <span style={{fontSize:13,color:C.text}}>
-                            {g.l}
-                            <span style={{fontSize:11,color:C.muted,marginLeft:6}}>({g.r})</span>
-                          </span>
-                          <span style={{fontSize:12,fontWeight:700,color:g.color}}>
-                            {students.length} · {pct.toFixed(0)}%
-                          </span>
-                        </div>
-                        <div style={{background:C.bg,borderRadius:4,height:7,overflow:"hidden"}}>
-                          <div style={{width:`${pct}%`,height:"100%",
-                            background:g.color,borderRadius:4}}/>
-                        </div>
-                        {students.length>0&&(
-                          <div style={{fontSize:11,color:C.muted,marginTop:4,
-                            overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            {students.map(s=>s.name.split(" ")[0]).join(" · ")}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </Card>
-
-            <Card theme={C}>
-              <div style={{padding:isMobile?18:24}}>
-                <Label theme={C}>Individual SGPA — all students</Label>
-                <div style={{display:"flex",alignItems:"flex-end",gap:4,
-                  height:120,overflowX:"auto",paddingBottom:4,marginTop:14}}>
-                  {ranked.map((s,i)=>{
-                    const h=(s.sgpa/10)*100;
-                    const col=s.sgpa>=8?C.gold:s.sgpa>=7?"#9ab870":s.sgpa>=6?"#5b9eb8":"#a05050";
-                    return (
-                      <div key={i} title={`${s.name}: SGPA ${s.sgpa}`}
-                        style={{flex:"0 0 28px",display:"flex",
-                        flexDirection:"column",alignItems:"center",gap:3}}>
-                        <div style={{fontSize:8,color:C.muted}}>{s.sgpa}</div>
-                        <div style={{width:18,height:h,background:col,
-                          borderRadius:"3px 3px 0 0",opacity:.9}}/>
-                        <div style={{fontSize:7,color:C.dim,width:28,overflow:"hidden",
-                          whiteSpace:"nowrap",textOverflow:"ellipsis",textAlign:"center"}}>
-                          {s.name.split(" ")[0]}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* ════ TAB 3 · ALL RESULTS ════ */}
-        {tab===3 && (
-          <div>
-            <div style={{display:"flex",gap:10,marginBottom:18,flexWrap:"wrap"}}>
-              <input value={nameQ} onChange={e=>setNameQ(e.target.value)}
-                placeholder="Search by name…"
-                style={{padding:"10px 14px",background:C.surface,border:`1px solid ${C.border}`,
-                  borderRadius:10,color:C.text,fontSize:13,outline:"none",
-                  flex:"1 1 160px",minWidth:0,fontFamily:"inherit"}}/>
-              <select value={filterR} onChange={e=>setFilterR(e.target.value)}
-                style={{padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,
-                  borderRadius:10,color:C.text,fontSize:13,outline:"none",
-                  cursor:"pointer",flex:"1 1 140px"}}>
-                <option value="ALL">All Results</option>
-                <option value="PASSED">Passed & Promoted</option>
-                <option value="PROMOTED">Promoted Only</option>
-              </select>
-              <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
-                style={{padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,
-                  borderRadius:10,color:C.text,fontSize:13,outline:"none",
-                  cursor:"pointer",flex:"1 1 120px"}}>
-                <option value="rank">Sort: Rank</option>
-                <option value="sgpa">Sort: SGPA</option>
-                <option value="name">Sort: Name</option>
-              </select>
-            </div>
-
-            <div style={{fontSize:12,color:C.muted,marginBottom:14}}>
-              {filteredAll.length} of {STUDENTS.length} students
-            </div>
-
-            {isMobile ? (
-              filteredAll.map(s=>(
-                <div key={s.rollNo} onClick={()=>{setFound(s);setTab(0);}}
-                  style={{background:C.surface,border:`1px solid ${C.border}`,
-                  borderRadius:14,padding:"14px 16px",marginBottom:10,
-                  cursor:"pointer",transition:"border-color .15s"}}
-                  onMouseEnter={e=>e.currentTarget.style.borderColor=C.borderHi}
-                  onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-                  <div style={{display:"flex",justifyContent:"space-between",
-                    alignItems:"flex-start",marginBottom:10}}>
-                    <div style={{minWidth:0}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                        <span style={{fontSize:12,fontWeight:800,
-                          color:s.rank<=3?C.gold:C.muted}}>#{s.rank}</span>
-                        <span style={{fontSize:14,fontWeight:600,color:C.text,
-                          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {s.name}
-                        </span>
-                      </div>
-                      <div style={{fontSize:10,color:C.muted,fontFamily:"monospace"}}>
-                        {s.rollNo}
-                      </div>
-                    </div>
-                    <span style={{flexShrink:0,marginLeft:8,fontSize:11,fontWeight:700,
-                      color:s.result.includes("PASSED")?C.green:C.muted}}>
-                      {s.result.includes("PASSED")?"✓ Passed":"— Promoted"}
-                    </span>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+              <Card theme={C}>
+                <div style={{ padding: 24 }}>
+                  <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Semester 2 GPA Distribution
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {[
-                      {l:"Total",  v:`${s.grand}/800`},
-                      {l:"SGPA",   v:s.sgpa},
-                      {l:"Theory", v:s.theory},
-                    ].map((item,i)=>(
-                      <div key={i} style={{background:C.bg,borderRadius:8,
-                        padding:"8px 6px",textAlign:"center"}}>
-                        <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",
-                          letterSpacing:.5,fontWeight:600}}>{item.l}</div>
-                        <div style={{fontSize:13,fontWeight:700,
-                          color:C.gold,marginTop:3}}>{item.v}</div>
-                      </div>
-                    ))}
+                      { band: "Outstanding (9.0+)", count: gradeDistribution[2][0], color: bandColors[0] },
+                      { band: "Excellent (8.0–8.9)", count: gradeDistribution[2][1], color: bandColors[1] },
+                      { band: "Very Good (7.0–7.9)", count: gradeDistribution[2][2], color: bandColors[2] },
+                      { band: "Good (6.0–6.9)", count: gradeDistribution[2][3], color: bandColors[3] },
+                      { band: "Average (5.0–5.9)", count: gradeDistribution[2][4], color: bandColors[4] },
+                      { band: "Below Average (< 5.0)", count: gradeDistribution[2][5], color: bandColors[5] }
+                    ].map((g) => {
+                      const pct = ((g.count / stats.nSem2) * 100).toFixed(0);
+                      return (
+                        <div key={g.band}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                            <span style={{ color: C.text }}>{g.band}</span>
+                            <strong style={{ color: g.color }}>{g.count} students ({pct}%)</strong>
+                          </div>
+                          <div style={{ height: 6, background: C.raised, borderRadius: 99, overflow: "hidden" }}>
+                            <div className="gsap-progress-bar" data-pct={pct} style={{ width: "0%", height: "100%", background: g.color, borderRadius: 99 }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead>
-                    <tr style={{borderBottom:`1px solid ${C.border}`}}>
-                      {["Rank","Roll No","Name","Grand Total","SGPA","Theory","Practical","Result"].map(h=>(
-                        <th key={h} style={{padding:"10px 14px",textAlign:"left",
-                          color:C.muted,fontWeight:600,fontSize:11,
-                          textTransform:"uppercase",letterSpacing:.8,
-                          whiteSpace:"nowrap"}}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAll.map(s=>(
-                      <tr key={s.rollNo}
-                        onClick={()=>{setFound(s);setTab(0);}}
-                        style={{borderBottom:`1px solid ${C.border}`,cursor:"pointer",
-                          transition:"background .12s"}}
-                        onMouseEnter={e=>e.currentTarget.style.background=C.raised}
-                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        <td style={{padding:"12px 14px",fontWeight:800,
-                          color:s.rank<=3?C.gold:C.muted}}>#{s.rank}</td>
-                        <td style={{padding:"12px 14px",color:C.muted,
-                          fontFamily:"monospace",fontSize:12}}>{s.rollNo}</td>
-                        <td style={{padding:"12px 14px",fontWeight:600,color:C.text}}>
-                          {s.name}
-                        </td>
-                        <td style={{padding:"12px 14px",fontWeight:700,color:C.gold}}>
-                          {s.grand}<span style={{color:C.muted,fontWeight:400}}>/800</span>
-                        </td>
-                        <td style={{padding:"12px 14px"}}>
-                          <Pill color={s.sgpa>=8?C.gold:s.sgpa>=6?"#5b9eb8":"#b87858"}>
-                            {s.sgpa}
-                          </Pill>
-                        </td>
-                        <td style={{padding:"12px 14px",color:C.muted}}>{s.theory}</td>
-                        <td style={{padding:"12px 14px",color:C.muted}}>{s.practical}</td>
-                        <td style={{padding:"12px 14px"}}>
-                          <span style={{fontSize:12,fontWeight:600,
-                            color:s.result.includes("PASSED")?C.green:C.muted}}>
-                            {s.result.includes("PASSED")?"✓ Passed":"— Promoted"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              </Card>
+
+            </div>
+
+            {/* Individual student trends comparisons */}
+            <Card theme={C}>
+              <div style={{ padding: 24 }}>
+                <h4 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Individual Student Performance Trend (CGPA Chart)
+                </h4>
+                <div style={{
+                  display: "flex",
+                  alignItems: "flex-end",
+                  gap: isMobile ? 6 : 12,
+                  height: 160,
+                  overflowX: "auto",
+                  paddingBottom: 8,
+                  marginTop: 14
+                }}>
+                  {STUDENTS.map((st) => {
+                    const cGpa = studentRanks[st.rollNo].cgpa;
+                    const h = cGpa * 12; // height in pixels (0 to 120px)
+                    const fill = cGpa >= 8
+                      ? C.gold
+                      : cGpa >= 7
+                        ? (dark ? "#818cf8" : "#4f46e5")
+                        : cGpa >= 6
+                          ? (dark ? "#6366f1" : "#2563eb")
+                          : C.red;
+                    
+                    return (
+                      <div
+                        key={st.rollNo}
+                        title={`${st.name}: CGPA ${cGpa}`}
+                        onClick={() => viewStudent(st)}
+                        style={{
+                          flex: 1,
+                          minWidth: isMobile ? 18 : 28,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center", // Align elements in center horizontally
+                          justifyContent: "flex-end",
+                          height: 140,
+                          cursor: "pointer"
+                        }}
+                      >
+                        <div style={{ fontSize: 9, fontWeight: 700, color: C.muted, width: "100%", textAlign: "center", marginBottom: 4 }}>{cGpa}</div>
+                        <div className="gsap-bar" style={{ width: "100%", height: `${h}px`, background: fill, borderRadius: "4px 4px 0 0", opacity: 0.8 }} />
+                        <div style={{
+                          fontSize: 8,
+                          color: C.muted,
+                          width: "100%",
+                          overflow: "hidden",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          textAlign: "center"
+                        }}>
+                          {st.name.split(" ")[0]}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
+            </Card>
+
           </div>
         )}
-      </div>
 
-      {/* ── FOOTER ── */}
-      <div style={{borderTop:`1px solid ${C.border}`,padding:"18px 24px",
-        textAlign:"center",color:C.muted,fontSize:11,letterSpacing:.5}}>
-        BCA 1st Semester Examination 2024 · Jharkhand University of Technology, Ranchi
-      </div>
+        {/* ════════════ TABS 3: STUDENT LEDGER ════════════ */}
+        {tab === 3 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="gsap-fade-in">
+            
+            {/* Table title info */}
+            <div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Student Result Ledger</h3>
+              <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Explore the full results list with multi-column sorting and direct filters.</p>
+            </div>
+
+            {/* Ledger Filters row */}
+            <div style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              alignItems: "center",
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              padding: 14,
+              borderRadius: 12
+            }}>
+              {/* Query Search */}
+              <div style={{ flex: "1 1 200px" }}>
+                <Input
+                  theme={C}
+                  value={ledgerSearch}
+                  onChange={(e) => setLedgerSearch(e.target.value)}
+                  placeholder="Search by name or roll number…"
+                  style={{ width: "100%" }}
+                />
+              </div>
+
+              {/* Status Select */}
+              <div>
+                <Select
+                  theme={C}
+                  value={ledgerStatus}
+                  onChange={(e) => setLedgerStatus(e.target.value)}
+                >
+                  <option value="ALL">All Outcomes</option>
+                  <option value="PASSED">Passed & Promoted</option>
+                  <option value="PROMOTED">Promoted Only</option>
+                </Select>
+              </div>
+
+              {/* Sort selector */}
+              <div>
+                <Select
+                  theme={C}
+                  value={ledgerSort}
+                  onChange={(e) => setLedgerSort(e.target.value)}
+                >
+                  <option value="rank">Sort: Rank</option>
+                  <option value="sgpa">Sort: GPA</option>
+                  <option value="name">Sort: Name</option>
+                  <option value="roll">Sort: Roll No</option>
+                </Select>
+              </div>
+            </div>
+
+            {/* List info */}
+            <div style={{ fontSize: 12, color: C.muted, display: "flex", justifyContent: "space-between" }}>
+              <span>Showing {ledgerData.length} of {STUDENTS.length} students</span>
+              {semContext === "2" && <span>* 6 students missing Sem 2 records</span>}
+            </div>
+
+            {/* Ledger Grid (Mobile Card layout / Desktop Table layout) */}
+            {isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {ledgerData.map((s) => {
+                  const pass = semContext === "1"
+                    ? s.sem1.result.includes("PASSED")
+                    : semContext === "2"
+                      ? s.sem2 && s.sem2.result.includes("PASSED")
+                      : s.sem1.result.includes("PASSED") && (s.sem2 ? s.sem2.result.includes("PASSED") : false);
+
+                  const gpa = semContext === "1"
+                    ? s.sem1.sgpa
+                    : semContext === "2"
+                      ? s.sem2 ? s.sem2.sgpa : "N/A"
+                      : s.cgpa;
+
+                  const totalScore = semContext === "1"
+                    ? s.sem1.grand
+                    : semContext === "2"
+                      ? s.sem2 ? s.sem2.grand : "N/A"
+                      : s.sem1.grand + (s.sem2 ? s.sem2.grand : 0);
+
+                  const maxTotal = semContext === "cumulative" ? 1600 : 800;
+
+                  return (
+                    <Card key={s.rollNo} theme={C} onClick={() => viewStudent(s)} style={{ cursor: "pointer" }}>
+                      <div style={{ padding: 16 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: C.gold }}>
+                                #{semContext === "1" ? s.r1 : semContext === "2" ? s.r2 : s.rc}
+                              </span>
+                              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text }}>
+                                {s.name}
+                              </h4>
+                            </div>
+                            <span style={{ fontFamily: "monospace", fontSize: 11, color: C.muted }}>{s.rollNo}</span>
+                          </div>
+
+                          <Pill color={pass ? C.green : C.gold}>
+                            {pass ? "Pass" : s.sem2 === null && semContext !== "1" ? "Held" : "Promoted"}
+                          </Pill>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, textAlign: "center" }}>
+                          <div style={{ background: C.raised, borderRadius: 6, padding: 6 }}>
+                            <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase" }}>GPA</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.gold, marginTop: 2 }}>{gpa}</div>
+                          </div>
+                          <div style={{ background: C.raised, borderRadius: 6, padding: 6 }}>
+                            <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase" }}>Grand</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>{totalScore}</div>
+                          </div>
+                          <div style={{ background: C.raised, borderRadius: 6, padding: 6 }}>
+                            <div style={{ fontSize: 9, color: C.muted, textTransform: "uppercase" }}>Max</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.muted, marginTop: 2 }}>{maxTotal}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card theme={C}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left", background: C.raised }}>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600 }}>Rank</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600 }}>Roll Number</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600 }}>Student Name</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Sem 1 SGPA</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Sem 2 SGPA</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Cumulative CGPA</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Grand Total</th>
+                        <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600 }}>Status Outcome</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ledgerData.map((s) => {
+                        const activeRank = semContext === "1" ? s.r1 : semContext === "2" ? s.r2 : s.rc;
+                        const isFailedSem1 = s.sem1.result.includes("PROMOTED");
+                        const isFailedSem2 = s.sem2 ? s.sem2.result.includes("PROMOTED") : false;
+                        
+                        let outcomeColor = C.green;
+                        let outcomeText = "Passed";
+
+                        if (semContext === "1") {
+                          outcomeText = s.sem1.result;
+                          outcomeColor = isFailedSem1 ? C.gold : C.green;
+                        } else if (semContext === "2") {
+                          if (s.sem2) {
+                            outcomeText = s.sem2.result;
+                            outcomeColor = isFailedSem2 ? C.gold : C.green;
+                          } else {
+                            outcomeText = "Result Held";
+                            outcomeColor = C.red;
+                          }
+                        } else {
+                          // Cumulative
+                          if (isFailedSem1 || isFailedSem2) {
+                            outcomeText = "Promoted (Backlog)";
+                            outcomeColor = C.gold;
+                          } else if (s.sem2 === null) {
+                            outcomeText = "Held (Sem 2 missing)";
+                            outcomeColor = C.red;
+                          } else {
+                            outcomeText = "Cleared Year 1";
+                            outcomeColor = C.green;
+                          }
+                        }
+
+                        return (
+                          <tr
+                            key={s.rollNo}
+                            onClick={() => viewStudent(s)}
+                            style={{
+                              borderBottom: `1px solid ${C.border}`,
+                              cursor: "pointer",
+                              transition: "background 0.2s"
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <td style={{ padding: "14px 16px", fontWeight: 700, color: activeRank <= 3 ? C.gold : C.muted }}>
+                              #{activeRank}
+                            </td>
+                            <td style={{ padding: "14px 16px", fontFamily: "monospace", color: C.muted }}>{s.rollNo}</td>
+                            <td style={{ padding: "14px 16px", fontWeight: 700, color: C.text }}>{s.name}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: C.text }}>{s.sem1.sgpa}</td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: s.sem2 ? C.text : C.muted }}>
+                              {s.sem2 ? s.sem2.sgpa : "-"}
+                            </td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", fontWeight: 700, color: C.gold }}>
+                              {s.cgpa}
+                            </td>
+                            <td style={{ padding: "14px 16px", textAlign: "center", color: C.text }}>
+                              {semContext === "1"
+                                ? s.sem1.grand
+                                : semContext === "2"
+                                  ? s.sem2 ? s.sem2.grand : "-"
+                                  : s.sem1.grand + (s.sem2 ? s.sem2.grand : 0)
+                              }
+                            </td>
+                            <td style={{ padding: "14px 16px" }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: outcomeColor }}>
+                                {outcomeText}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+          </div>
+        )}
+
+      </main>
+
+      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
+      <footer style={{
+        marginTop: "auto",
+        borderTop: `1px solid ${C.border}`,
+        background: C.surface,
+        padding: "32px 0",
+        textAlign: "center",
+        color: C.muted,
+        fontSize: 13,
+        boxSizing: "border-box"
+      }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: `0 ${px}px`, display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div style={{ textAlign: isMobile ? "center" : "left" }}>
+            <div style={{ fontWeight: 600, color: C.text }}>
+              BCA Results Management Portal
+            </div>
+            <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>
+              © 2024–2025 · Jharkhand University of Technology, Ranchi
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>
+              Developed by <strong style={{ color: C.text }}>Sumit Ghosh</strong>
+            </span>
+            <div style={{ display: "flex", gap: 12 }}>
+              <a
+                href="https://github.com/SumitGh0sh"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: C.raised,
+                  border: `1px solid ${C.border}`,
+                  color: C.text,
+                  transition: "all 0.2s ease",
+                  cursor: "pointer"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = C.borderHi;
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = C.raised;
+                  e.currentTarget.style.transform = "none";
+                }}
+                title="GitHub"
+              >
+                <GithubIcon color={C.text} size={16} />
+              </a>
+              <a
+                href="https://www.linkedin.com/in/sumitgh0sh/"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  background: C.raised,
+                  border: `1px solid ${C.border}`,
+                  color: C.text,
+                  transition: "all 0.2s ease",
+                  cursor: "pointer"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = C.borderHi;
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = C.raised;
+                  e.currentTarget.style.transform = "none";
+                }}
+                title="LinkedIn"
+              >
+                <LinkedinIcon color={C.text} size={16} />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
