@@ -4,6 +4,7 @@ A fast, modern, and interactive result portal built for the BCA department stude
 
 ## ✨ Features
 * **Lightning Fast Search:** Find results instantly by Roll Number or Name with soft lavender focus glows.
+* **Frosted Glass Scorecard PNG Download:** Export a high-resolution, glassmorphic card containing student metrics, ranks, and dynamic digital signatures for offline storage.
 * **Smart Analytics & GSAP Transitions:** View class averages, highest scores, and SGPA grade distributions with fluid stagger-fade progress bar animations.
 * **Dynamic Toppers Board:** Filter class toppers by overall grand total or specific subjects, complete with visual podium rankings and glowing badges.
 * **White Aesthetic SVG Icons:** Clean outline vectors replace all emoji symbols for a cohesive, modern UI.

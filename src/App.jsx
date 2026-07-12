@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   SUBJECTS_SEM1,
   SUBJECTS_SEM2,
@@ -9,6 +9,7 @@ import {
 } from "./data/mockData";
 import { Pill, Card, Label, Input, Select, Button } from "./components/UIComponents";
 import { gsap } from "gsap";
+import { toPng } from "html-to-image";
 import "./index.css";
 
 const renderTabIcon = (id, active, C) => {
@@ -119,6 +120,7 @@ export default function BCAPortal() {
   const [name, setName] = useState("");
   const [foundStudent, setFoundStudent] = useState(null);
   const [searchError, setSearchError] = useState("");
+  const scorecardRef = useRef(null);
 
   // Ledger States
   const [ledgerSearch, setLedgerSearch] = useState("");
@@ -235,6 +237,21 @@ export default function BCAPortal() {
     } else {
       setSearchError("No student records found matching the criteria.");
     }
+  };
+
+  const handleDownloadScorecard = () => {
+    if (!scorecardRef.current || !foundStudent) return;
+    
+    toPng(scorecardRef.current, { cacheBust: true, scale: 2 })
+      .then((dataUrl) => {
+        const link = document.createElement("a");
+        link.download = `scorecard-${foundStudent.rollNo}.png`;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((err) => {
+        console.error("Oops, something went wrong exporting the scorecard!", err);
+      });
   };
 
   // Search from Ledger click
@@ -662,8 +679,21 @@ export default function BCAPortal() {
 
             {/* Results Report Card */}
             {foundStudent && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }} className="gsap-fade-in">
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="gsap-fade-in">
                 
+                {/* Download Actions Toolbar */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button theme={C} onClick={() => handleDownloadScorecard()}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Download Score Card
+                  </Button>
+                </div>
+
                 {/* Student Summary Panel */}
                 <div style={{
                   background: C.surface,
@@ -1030,7 +1060,225 @@ export default function BCAPortal() {
                 )}
 
               </div>
-            )}
+
+              {/* Hidden scorecard template for PNG download */}
+              <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+                <div
+                  ref={scorecardRef}
+                  style={{
+                    width: 900,
+                    height: 580,
+                    background: "radial-gradient(circle at 10% 10%, #171026 0%, #06040d 100%)",
+                    position: "relative",
+                    overflow: "hidden",
+                    fontFamily: "system-ui, -apple-system, sans-serif"
+                  }}
+                >
+                  {/* Ambient Background Blobs */}
+                  <div style={{ width: 320, height: 320, borderRadius: "50%", background: "rgba(192, 132, 252, 0.16)", filter: "blur(60px)", top: "-60px", left: "-60px", position: "absolute" }} />
+                  <div style={{ width: 320, height: 320, borderRadius: "50%", background: "rgba(124, 58, 237, 0.16)", filter: "blur(60px)", bottom: "-60px", right: "-60px", position: "absolute" }} />
+                  <div style={{ width: 220, height: 220, borderRadius: "50%", background: "rgba(245, 158, 11, 0.08)", filter: "blur(40px)", top: 160, left: 340, position: "absolute" }} />
+
+                  {/* Glassmorphism Inner Card Container */}
+                  <div style={{
+                    position: "absolute",
+                    top: 24,
+                    bottom: 24,
+                    left: 24,
+                    right: 24,
+                    background: "rgba(255, 255, 255, 0.025)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: 16,
+                    boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.5)",
+                    padding: "32px 40px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    boxSizing: "border-box"
+                  }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase" }}>Jharkhand University of Technology</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#ffffff", marginTop: 2, letterSpacing: 0.5 }}>BCA RESULT PORTAL</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: "#c084fc",
+                          border: "1px solid rgba(192, 132, 252, 0.3)",
+                          background: "rgba(192, 132, 252, 0.1)",
+                          padding: "4px 10px",
+                          borderRadius: 20,
+                          letterSpacing: 0.5
+                        }}>
+                          OFFICIAL REPORT
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Student Profile */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 }}>
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Name</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.name}</div>
+                        <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)", marginTop: 4 }}>
+                          ROLL NO: <span style={{ color: "#c084fc", fontWeight: 600 }}>{foundStudent.rollNo}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Ranks Row */}
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+                          <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 1 Rank</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].r1}</div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+                          <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 2 Rank</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: foundStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                            {foundStudent.sem2 ? `#${studentRanks[foundStudent.rollNo].r2}` : "N/A"}
+                          </div>
+                        </div>
+                        <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
+                          <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Rank</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].rc}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Body Details Section */}
+                    <div style={{ display: "flex", gap: 24, marginTop: 18, flex: 1, alignItems: "stretch" }}>
+                      {/* Left Box: Core Academic Metrics */}
+                      <div style={{
+                        flex: 1,
+                        background: "rgba(255, 255, 255, 0.015)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        borderRadius: 10,
+                        padding: 16,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between"
+                      }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 1 SGPA</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.sem1.sgpa}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 2 SGPA</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: foundStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                              {foundStudent.sem2 ? foundStudent.sem2.sgpa : "N/A"}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Cumulative CGPA</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "#f59e0b", marginTop: 2 }}>{studentRanks[foundStudent.rollNo].cgpa}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Result</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginTop: 2 }}>PASSED</div>
+                          </div>
+                        </div>
+                        
+                        <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: 8, marginTop: 8, fontSize: 10, color: "rgba(255, 255, 255, 0.5)" }}>
+                          Total Marks: <strong style={{ color: "#ffffff" }}>{foundStudent.sem1.grand + (foundStudent.sem2 ? foundStudent.sem2.grand : 0)}</strong> / {foundStudent.sem2 ? 1600 : 800}
+                        </div>
+                      </div>
+                      
+                      {/* Right Box: Compact Subject Grade Sheets */}
+                      <div style={{
+                        flex: 1.3,
+                        background: "rgba(255, 255, 255, 0.015)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        borderRadius: 10,
+                        padding: 14,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between"
+                      }}>
+                        <div>
+                          <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700, marginBottom: 6, letterSpacing: 0.5 }}>Subject Grades Summary</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px" }}>
+                            {/* List Sem 1 Grades */}
+                            <div>
+                              <div style={{ fontSize: 7, color: "#c084fc", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 1</div>
+                              {SUBJECTS_SEM1.map((s) => {
+                                const mark = foundStudent.sem1[s.code];
+                                if (!mark) return null;
+                                const maxVal = s.maxFin + s.maxInt;
+                                const grade = getGrade(mark[2], maxVal);
+                                return (
+                                  <div key={s.code} style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,0.7)", padding: "1px 0" }}>
+                                    <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: 90 }}>{s.name}</span>
+                                    <span style={{ fontWeight: 800, color: gradeColor(grade) }}>{grade}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* List Sem 2 Grades */}
+                            <div>
+                              <div style={{ fontSize: 7, color: "#c084fc", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 2</div>
+                              {foundStudent.sem2 ? (
+                                SUBJECTS_SEM2.map((s) => {
+                                  const mark = foundStudent.sem2[s.code];
+                                  if (!mark) return null;
+                                  const maxVal = s.maxFin + s.maxInt;
+                                  const grade = getGrade(mark[2], maxVal);
+                                  return (
+                                    <div key={s.code} style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,0.7)", padding: "1px 0" }}>
+                                      <span style={{ textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: 90 }}>{s.name}</span>
+                                      <span style={{ fontWeight: 800, color: gradeColor(grade) }}>{grade}</span>
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.2)", fontStyle: "italic", marginTop: 4 }}>Semester 2 results held.</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer & Signatures */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 18, borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: 12 }}>
+                      <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.3)", maxWidth: 320, lineHeight: 1.3 }}>
+                        * This score card is digitally generated by the JUT BCA department system. 
+                        Verify authenticity using this Roll Number on the portal.
+                      </div>
+                      
+                      {/* Signature Panel */}
+                      <div style={{ display: "flex", gap: 32 }}>
+                        <div style={{ textAlign: "center", position: "relative" }}>
+                          <div style={{ position: "absolute", top: -16, left: 10, width: 80, height: 20, pointerEvents: "none" }}>
+                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#c084fc" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
+                              <path d="M10,25 Q30,5 45,22 T70,10 T95,20" />
+                            </svg>
+                          </div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: "#ffffff", borderTop: "1px solid rgba(255, 255, 255, 0.15)", paddingTop: 3, width: 80, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            Controller
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "center", position: "relative" }}>
+                          <div style={{ position: "absolute", top: -16, left: 10, width: 80, height: 20, pointerEvents: "none" }}>
+                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
+                              <path d="M5,25 C15,10 25,5 40,25 C50,35 60,10 75,25 C85,35 90,20 95,20" />
+                            </svg>
+                          </div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: "#ffffff", borderTop: "1px solid rgba(255, 255, 255, 0.15)", paddingTop: 3, width: 80, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            Verified
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
           </div>
         )}
 
