@@ -142,12 +142,19 @@ export default function BCAPortal() {
     return STUDENTS.filter(st => st.name.toUpperCase().includes(query)).slice(0, 5);
   }, [name]);
 
-  const selectSuggestedStudent = (student) => {
-    setFoundStudent(student);
-    setRoll(student.rollNo);
-    setName(student.name);
-    setSearchError("");
-    setTab(0);
+  const selectSuggestedStudent = (student, searchType) => {
+    if (searchType === "name") {
+      setName(student.name);
+      setRoll("");
+    } else {
+      setRoll(student.rollNo);
+      setName("");
+    }
+    setTimeout(() => {
+      setFoundStudent(student);
+      setSearchError("");
+      setTab(0);
+    }, 250);
   };
 
   const downloadCgpa = foundStudent ? (foundStudent.sem2
@@ -722,7 +729,7 @@ export default function BCAPortal() {
                           return (
                             <div
                               key={st.rollNo}
-                              onClick={() => selectSuggestedStudent(st)}
+                               onClick={() => selectSuggestedStudent(st, "roll")}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -815,7 +822,7 @@ export default function BCAPortal() {
                           return (
                             <div
                               key={st.rollNo}
-                              onClick={() => selectSuggestedStudent(st)}
+                              onClick={() => selectSuggestedStudent(st, "name")}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
