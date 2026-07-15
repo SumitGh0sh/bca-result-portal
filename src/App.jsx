@@ -126,7 +126,29 @@ export default function BCAPortal() {
   const [name, setName] = useState("");
   const [foundStudent, setFoundStudent] = useState(null);
   const [searchError, setSearchError] = useState("");
+  const [rollFocused, setRollFocused] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
   const scorecardRef = useRef(null);
+
+  const rollSuggestions = useMemo(() => {
+    if (!roll.trim()) return [];
+    const query = roll.trim();
+    return STUDENTS.filter(st => st.rollNo.includes(query)).slice(0, 5);
+  }, [roll]);
+
+  const nameSuggestions = useMemo(() => {
+    if (!name.trim()) return [];
+    const query = name.toUpperCase();
+    return STUDENTS.filter(st => st.name.toUpperCase().includes(query)).slice(0, 5);
+  }, [name]);
+
+  const selectSuggestedStudent = (student) => {
+    setFoundStudent(student);
+    setRoll(student.rollNo);
+    setName(student.name);
+    setSearchError("");
+    setTab(0);
+  };
 
   const downloadCgpa = foundStudent ? (foundStudent.sem2
     ? ((parseFloat(foundStudent.sem1.sgpa) + parseFloat(foundStudent.sem2.sgpa)) / 2).toFixed(2)
@@ -667,7 +689,7 @@ export default function BCAPortal() {
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", alignItems: "end", gap: 14 }}>
-                  <div>
+                  <div style={{ position: "relative" }}>
                     <Label theme={C}>University Roll No</Label>
                     <Input
                       theme={C}
@@ -675,14 +697,92 @@ export default function BCAPortal() {
                       onChange={(e) => setRoll(e.target.value)}
                       placeholder="e.g. 24013590023"
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      onFocus={() => setRollFocused(true)}
+                      onBlur={() => setTimeout(() => setRollFocused(false), 200)}
                     />
+                    {rollFocused && rollSuggestions.length > 0 && (
+                      <div style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: C.surface,
+                        border: `1px solid ${C.borderHi}`,
+                        borderRadius: 8,
+                        marginTop: 4,
+                        boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                        zIndex: 1000,
+                        maxHeight: 250,
+                        overflowY: "auto",
+                        backdropFilter: "blur(12px)",
+                        WebkitBackdropFilter: "blur(12px)",
+                      }}>
+                        {rollSuggestions.map((st) => {
+                          const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                          return (
+                            <div
+                              key={st.rollNo}
+                              onClick={() => selectSuggestedStudent(st)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "8px 12px",
+                                borderBottom: `1px solid ${C.border}`,
+                                cursor: "pointer",
+                                transition: "background 0.2s",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            >
+                              <div style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                overflow: "hidden",
+                                background: C.raised,
+                                border: `1px solid ${C.border}`,
+                                flexShrink: 0
+                              }}>
+                                <img
+                                  src={getAvatarUrl(st)}
+                                  alt={st.name}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {st.name}
+                                </div>
+                                <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+                                  {st.rollNo}
+                                </div>
+                              </div>
+                              <span style={{
+                                fontSize: 8,
+                                fontWeight: 800,
+                                color: charClass.color,
+                                border: `1px solid ${charClass.color}30`,
+                                background: `${charClass.color}10`,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                textTransform: "uppercase",
+                                flexShrink: 0
+                              }}>
+                                Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ textAlign: "center", paddingBottom: 10, fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: 1 }}>
                     OR
                   </div>
 
-                  <div>
+                  <div style={{ position: "relative" }}>
                     <Label theme={C}>Student Name</Label>
                     <Input
                       theme={C}
@@ -690,7 +790,85 @@ export default function BCAPortal() {
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. Sumit Ghosh"
                       onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={() => setTimeout(() => setNameFocused(false), 200)}
                     />
+                    {nameFocused && nameSuggestions.length > 0 && (
+                      <div style={{
+                        position: "absolute",
+                        top: "100%",
+                        left: 0,
+                        right: 0,
+                        background: C.surface,
+                        border: `1px solid ${C.borderHi}`,
+                        borderRadius: 8,
+                        marginTop: 4,
+                        boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                        zIndex: 1000,
+                        maxHeight: 250,
+                        overflowY: "auto",
+                        backdropFilter: "blur(12px)",
+                        WebkitBackdropFilter: "blur(12px)",
+                      }}>
+                        {nameSuggestions.map((st) => {
+                          const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                          return (
+                            <div
+                              key={st.rollNo}
+                              onClick={() => selectSuggestedStudent(st)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "8px 12px",
+                                borderBottom: `1px solid ${C.border}`,
+                                cursor: "pointer",
+                                transition: "background 0.2s",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                            >
+                              <div style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                overflow: "hidden",
+                                background: C.raised,
+                                border: `1px solid ${C.border}`,
+                                flexShrink: 0
+                              }}>
+                                <img
+                                  src={getAvatarUrl(st)}
+                                  alt={st.name}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {st.name}
+                                </div>
+                                <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+                                  {st.rollNo}
+                                </div>
+                              </div>
+                              <span style={{
+                                fontSize: 8,
+                                fontWeight: 800,
+                                color: charClass.color,
+                                border: `1px solid ${charClass.color}30`,
+                                background: `${charClass.color}10`,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                textTransform: "uppercase",
+                                flexShrink: 0
+                              }}>
+                                Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
