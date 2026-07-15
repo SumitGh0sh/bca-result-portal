@@ -6,9 +6,10 @@ import {
   makeTheme,
   gradeColor,
   getGrade,
-  getCharacterClass
+  getCharacterClass,
+  getAvatarUrl
 } from "./data/mockData";
-import { Pill, Card, Label, Input, Select, Button } from "./components/UIComponents";
+import { Pill, Card, Label, Input, Select, Button, ClassIcon } from "./components/UIComponents";
 import RadarChart from "./components/RadarChart";
 import { gsap } from "gsap";
 import { toPng } from "html-to-image";
@@ -761,19 +762,40 @@ export default function BCAPortal() {
                   overflow: "hidden"
                 }}>
                   <div style={{ padding: "24px 28px", borderBottom: `1px solid ${C.border}`, display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 16 }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.gold, textTransform: "uppercase" }}>
-                          Student Grade Sheet
-                        </span>
-                        <Pill color={C.muted}>Session 2024–25</Pill>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 10,
+                        background: C.raised,
+                        border: `1px solid ${C.border}`,
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.12)"
+                      }}>
+                        <img
+                          src={getAvatarUrl(foundStudent)}
+                          alt={`${foundStudent.name}'s Avatar`}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
                       </div>
-                      <h2 style={{ margin: "6px 0 2px", fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
-                        {foundStudent.name}
-                      </h2>
-                      <span style={{ fontFamily: "monospace", fontSize: 13, color: C.muted }}>
-                        Roll No: {foundStudent.rollNo}
-                      </span>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.gold, textTransform: "uppercase" }}>
+                            Student Grade Sheet
+                          </span>
+                          <Pill color={C.muted}>Session 2024–25</Pill>
+                        </div>
+                        <h2 style={{ margin: "6px 0 2px", fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-0.01em" }}>
+                          {foundStudent.name}
+                        </h2>
+                        <span style={{ fontFamily: "monospace", fontSize: 13, color: C.muted }}>
+                          Roll No: {foundStudent.rollNo}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Comparative Rank Display */}
@@ -1191,27 +1213,52 @@ export default function BCAPortal() {
 
                     {/* Student Profile */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 }}>
-                      <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Profile</div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.name}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                          <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)" }}>
-                            ROLL NO: <span style={{ color: "#828fff", fontWeight: 600 }}>{foundStudent.rollNo}</span>
-                          </span>
-                          {downloadClass && (
-                            <span style={{
-                              fontSize: 9,
-                              fontWeight: 800,
-                              color: downloadClass.color,
-                              border: `1px solid ${downloadClass.color}40`,
-                              background: `${downloadClass.color}15`,
-                              padding: "2px 6px",
-                              borderRadius: 4,
-                              textTransform: "uppercase"
-                            }}>
-                              {downloadClass.title} ({downloadCp} CP)
+                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        {/* Downloadable Scorecard Anime Avatar */}
+                        <div style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 8,
+                          background: "rgba(255, 255, 255, 0.03)",
+                          border: "1px solid rgba(255, 255, 255, 0.12)",
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0
+                        }}>
+                          <img
+                            src={getAvatarUrl(foundStudent)}
+                            alt={`${foundStudent.name}'s Avatar`}
+                            crossOrigin="anonymous"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Profile</div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.name}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                            <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)" }}>
+                              ROLL NO: <span style={{ color: "#828fff", fontWeight: 600 }}>{foundStudent.rollNo}</span>
                             </span>
-                          )}
+                            {downloadClass && (
+                              <span style={{
+                                fontSize: 9,
+                                fontWeight: 800,
+                                color: downloadClass.color,
+                                border: `1px solid ${downloadClass.color}40`,
+                                background: `${downloadClass.color}15`,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                textTransform: "uppercase"
+                              }}>
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  <ClassIcon classTitle={downloadClass.title} color={downloadClass.color} size={9} />
+                                  <span>{downloadClass.title} ({downloadCp} CP)</span>
+                                </span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
@@ -1620,6 +1667,26 @@ export default function BCAPortal() {
                           )}
                         </div>
 
+                        {/* Toppers Ledger Row Avatar */}
+                        <div style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: C.raised,
+                          border: `1px solid ${C.border}`,
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0
+                        }}>
+                          <img
+                            src={getAvatarUrl(st)}
+                            alt={`${st.name}'s Avatar`}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        </div>
+
                         <div>
                           <div
                             style={{ fontWeight: 700, color: C.text }}
@@ -2004,16 +2071,37 @@ export default function BCAPortal() {
                     <Card key={s.rollNo} theme={C} onClick={() => viewStudent(s)} style={{ cursor: "pointer" }}>
                       <div style={{ padding: 16 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                          <div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: C.gold }}>
-                                #{semContext === "1" ? s.r1 : semContext === "2" ? s.r2 : s.rc}
-                              </span>
-                              <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text }}>
-                                {s.name}
-                              </h4>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            {/* Mobile Avatar */}
+                            <div style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              background: C.raised,
+                              border: `1px solid ${C.border}`,
+                              overflow: "hidden",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0
+                            }}>
+                              <img
+                                src={getAvatarUrl(s)}
+                                alt={`${s.name}'s Avatar`}
+                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                              />
                             </div>
-                            <span style={{ fontFamily: "monospace", fontSize: 11, color: C.muted }}>{s.rollNo}</span>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ fontSize: 11, fontWeight: 800, color: C.gold }}>
+                                  #{semContext === "1" ? s.r1 : semContext === "2" ? s.r2 : s.rc}
+                                </span>
+                                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text }}>
+                                  {s.name}
+                                </h4>
+                              </div>
+                              <span style={{ fontFamily: "monospace", fontSize: 11, color: C.muted }}>{s.rollNo}</span>
+                            </div>
                           </div>
 
                           <Pill color={pass ? C.green : C.gold}>
@@ -2106,7 +2194,29 @@ export default function BCAPortal() {
                               #{activeRank}
                             </td>
                             <td style={{ padding: "14px 16px", fontFamily: "monospace", color: C.muted }}>{s.rollNo}</td>
-                            <td style={{ padding: "14px 16px", fontWeight: 700, color: C.text }}>{s.name}</td>
+                            <td style={{ padding: "14px 16px", fontWeight: 700, color: C.text }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: "50%",
+                                  background: C.raised,
+                                  border: `1px solid ${C.border}`,
+                                  overflow: "hidden",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0
+                                }}>
+                                  <img
+                                    src={getAvatarUrl(s)}
+                                    alt={`${s.name}'s Avatar`}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                </div>
+                                <span>{s.name}</span>
+                              </div>
+                            </td>
                             <td style={{ padding: "14px 16px", textAlign: "center", color: C.text }}>{s.sem1.sgpa}</td>
                             <td style={{ padding: "14px 16px", textAlign: "center", color: s.sem2 ? C.text : C.muted }}>
                               {s.sem2 ? s.sem2.sgpa : "-"}

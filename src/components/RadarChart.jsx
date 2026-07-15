@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { getCharacterClass } from "../data/mockData";
+import { getCharacterClass, getAvatarUrl } from "../data/mockData";
+import { ClassIcon } from "./UIComponents";
 
 // Generic subject category lists
 const AXIS_LABELS_SEM1 = [
@@ -264,22 +265,47 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
           pointerEvents: "none"
         }} />
 
-        <div style={{
-          width: 50,
-          height: 50,
-          borderRadius: 10,
-          background: charClass.color + "1a",
-          border: `2px solid ${charClass.color}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 22,
-          fontWeight: 800,
-          color: charClass.color,
-          boxShadow: `0 0 12px ${charClass.color}40`,
-          zIndex: 1
-        }}>
-          {cgpaVal >= 9.0 ? "S" : cgpaVal >= 8.0 ? "A" : cgpaVal >= 7.0 ? "B" : cgpaVal >= 6.0 ? "C" : cgpaVal >= 5.0 ? "D" : "F"}
+        <div style={{ position: "relative", zIndex: 1, flexShrink: 0 }}>
+          {/* Chibi Anime Avatar Image inside the box */}
+          <div style={{
+            width: 50,
+            height: 50,
+            borderRadius: 10,
+            background: charClass.color + "1a",
+            border: `2px solid ${charClass.color}`,
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 0 12px ${charClass.color}40`
+          }}>
+            <img
+              src={getAvatarUrl(student)}
+              alt={`${student.name}'s Avatar`}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </div>
+
+          {/* Class Grade Letter Overlay Badge */}
+          <div style={{
+            position: "absolute",
+            bottom: -3,
+            right: -3,
+            width: 16,
+            height: 16,
+            borderRadius: "50%",
+            background: charClass.color,
+            border: `1.5px solid ${C.surface}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 9,
+            fontWeight: 900,
+            color: "#ffffff",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.5)"
+          }}>
+            {cgpaVal >= 9.0 ? "S" : cgpaVal >= 8.0 ? "A" : cgpaVal >= 7.0 ? "B" : cgpaVal >= 6.0 ? "C" : cgpaVal >= 5.0 ? "D" : "F"}
+          </div>
         </div>
 
         <div style={{ flex: 1, zIndex: 1 }}>
@@ -287,8 +313,9 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
             <span className="eyebrow" style={{ fontSize: 9, color: charClass.color, fontWeight: 700 }}>
               Class Archetype
             </span>
-            <span style={{ fontSize: 9, color: C.muted, background: C.raised, padding: "1px 5px", borderRadius: 4, fontWeight: 600 }}>
-              LVL {Math.floor(cgpaVal * 10)}
+            <span style={{ fontSize: 9, color: C.muted, background: C.raised, padding: "2px 6px", borderRadius: 4, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <ClassIcon classTitle={charClass.title} color={charClass.color} size={10} />
+              <span>LVL {Math.floor(cgpaVal * 10)}</span>
             </span>
           </div>
           <h3 style={{ margin: "2px 0", fontSize: 16, fontWeight: 800, color: C.text, display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -452,3 +452,23 @@ export function getCharacterClass(cgpa) {
   if (g >= 5.0) return { title: "D-Class Initiate", color: "#6b7280", glow: "rgba(107, 114, 128, 0.4)", desc: "Apprentice scholar gathering code and credits." };
   return { title: "F-Class Challenger", color: "#ef4444", glow: "rgba(239, 68, 68, 0.4)", desc: "Quest active: Rebuild focus to unlock hidden potentials." };
 }
+
+export function getAvatarUrl(student) {
+  if (!student) return "";
+  const name = student.name.toUpperCase();
+  const isFemale = name.startsWith("BHUMI") || 
+                   name.startsWith("NIKKI") || 
+                   name.startsWith("PAYAL") || 
+                   name.startsWith("RAINA") || 
+                   name.startsWith("RIYA") || 
+                   name.startsWith("SHRISTI");
+
+  const seed = encodeURIComponent(student.name);
+  if (isFemale) {
+    // Female chibi anime avatar (Lorelei style with long/styled hair)
+    return `https://api.dicebear.com/7.x/lorelei/svg?seed=${seed}&hair=variant01,variant02,variant03,variant04,variant05,variant06,variant07,variant08,variant09,variant10,variant11,variant12,variant13,variant14,variant15,variant16,variant17,variant18,variant19,variant20,variant21,variant22,variant23,variant24`;
+  } else {
+    // Male chibi anime avatar (Lorelei style with short/spiky hair)
+    return `https://api.dicebear.com/7.x/lorelei/svg?seed=${seed}&hair=variant25,variant26,variant27,variant28,variant29,variant30,variant31,variant32,variant33,variant34,variant35,variant36,variant37,variant38,variant39,variant40,variant41,variant42,variant43,variant44,variant45,variant46,variant47,variant48`;
+  }
+}
