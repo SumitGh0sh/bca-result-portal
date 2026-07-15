@@ -150,6 +150,8 @@ export default function BCAPortal() {
       setRoll(student.rollNo);
       setName("");
     }
+    setNameFocused(false);
+    setRollFocused(false);
     setTimeout(() => {
       setFoundStudent(student);
       setSearchError("");
@@ -685,10 +687,9 @@ export default function BCAPortal() {
         {tab === 0 && (
           <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
             
-            {/* Input Form Card - Hidden when showing student profile */}
-            {!foundStudent && (
-              <div style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
-                <Card theme={C} className="gsap-fade-in">
+            {/* Input Form Card */}
+            <div style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
+              <Card theme={C} className="gsap-fade-in">
               <div style={{ padding: isMobile ? 20 : 28 }}>
                 <div style={{ marginBottom: 20 }}>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Lookup Academic Records</h3>
@@ -729,7 +730,7 @@ export default function BCAPortal() {
                           return (
                             <div
                               key={st.rollNo}
-                               onClick={() => selectSuggestedStudent(st, "roll")}
+                               onMouseDown={() => selectSuggestedStudent(st, "roll")}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -822,7 +823,7 @@ export default function BCAPortal() {
                           return (
                             <div
                               key={st.rollNo}
-                              onClick={() => selectSuggestedStudent(st, "name")}
+                              onMouseDown={() => selectSuggestedStudent(st, "name")}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -920,7 +921,6 @@ export default function BCAPortal() {
               </div>
             </Card>
           </div>
-            )}
 
             {/* Results Report Card */}
             {foundStudent && (
