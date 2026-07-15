@@ -383,51 +383,51 @@ export const STUDENTS = [
 
 export function makeTheme(dark) {
   return dark ? {
-    bg:       "#090514", // deep lavender black
-    surface:  "#120d24", // deep purple-gray
-    raised:   "#1d1636", // raised deep purple
-    border:   "#2e2554", // subtle purple border
-    borderHi: "#453974", // highlighted purple border
-    gold:     "#c084fc", // vibrant lavender accent
-    goldDim:  "#7c3aed", // violet accent
-    text:     "#f3effc", // white-lavender
-    muted:    "#a69dc9", // muted lavender
-    dim:      "#5a5084", // dim purple
-    green:    "#34d399", // emerald-400
-    greenBg:  "#064e3b",
-    red:      "#f43f5e", // rose-red 400
-    redBg:    "#7f1d1d",
-    amber:    "#c084fc",
+    bg:       "#010102", // Linear Canvas (deep black-blue)
+    surface:  "#0f1011", // Linear Surface 1 (charcoal panels)
+    raised:   "#141516", // Linear Surface 2 (hover/lifted panels)
+    border:   "#23252a", // Linear Hairline Border
+    borderHi: "#34343a", // Linear Hairline Strong
+    gold:     "#5e6ad2", // Linear Primary Lavender Accent
+    goldDim:  "#828fff", // Linear Primary Hover
+    text:     "#f7f8f8", // Linear Ink (headlines/body text)
+    muted:    "#d0d6e0", // Linear Ink Muted
+    dim:      "#8a8f98", // Linear Ink Subtle
+    green:    "#27a644", // Linear Semantic Success Green
+    greenBg:  "rgba(39, 166, 68, 0.1)",
+    red:      "#f43f5e", // Rose Red
+    redBg:    "rgba(244, 63, 94, 0.1)",
+    amber:    "#f59e0b",
   } : {
-    bg:       "#faf9fe", // light lavender-white
-    surface:  "#ffffff",
-    raised:   "#f1eefc", // raised light lavender
-    border:   "#e2daf7", // subtle light border
-    borderHi: "#cbbdf2", // highlighted light border
-    text:     "#12092d", // dark lavender-black
-    muted:    "#6d5e97", // higher contrast muted light lavender
-    dim:      "#b1a6d6", // dim light lavender
-    gold:     "#7c3aed", // violet-600 accent
-    goldDim:  "#6d28d9", // violet-700
-    green:    "#059669",
+    bg:       "#fafafb", // Linear Light Canvas
+    surface:  "#ffffff", // Linear Light Surface 1
+    raised:   "#f4f5f6", // Linear Light Surface 2
+    border:   "#e4e4e7", // Zinc Border
+    borderHi: "#d4d4d8", // Zinc Border Hover
+    text:     "#18181b", // Zinc Text
+    muted:    "#71717a", // Zinc Muted
+    dim:      "#a1a1aa", // Zinc Dim
+    gold:     "#5e6ad2", // Stays Lavender Accent
+    goldDim:  "#4f46e5",
+    green:    "#10b981",
     greenBg:  "#ecfdf5",
-    red:      "#dc2626",
+    red:      "#ef4444",
     redBg:    "#fef2f2",
-    amber:    "#7c3aed",
+    amber:    "#f59e0b",
   };
 }
 
 export function gradeColor(g) {
   return ({
-    O: "#c084fc",    // Vibrant Lavender (Outstanding)
-    "A+": "#a78bfa",  // Medium Lavender (Excellent)
-    A: "#818cf8",    // Periwinkle (Very Good)
-    "B+": "#6366f1",  // Indigo (Good)
-    B: "#4f46e5",    // Deep Indigo (Average)
-    C: "#f472b6",    // Rose Pink (Pass)
-    P: "#94a3b8",    // Slate Gray (Marginal Pass)
-    F: "#f43f5e"     // Warning Rose-Red (Fail)
-  })[g] || "#94a3b8";
+    O: "#5e6ad2",    // Signature Lavender
+    "A+": "#707bc4",  // Slightly muted lavender
+    A: "#818cf8",    // Periwinkle
+    "B+": "#6366f1",  // Indigo
+    B: "#4f46e5",    // Deep Indigo
+    C: "#a78bfa",    // Medium Lavender
+    P: "#8a8f98",    // Slate Gray (Linear ink-subtle)
+    F: "#f43f5e"     // Rose Red (Fail)
+  })[g] || "#8a8f98";
 }
 
 export function getGrade(marks, max) {
@@ -441,4 +441,14 @@ export function getGrade(marks, max) {
   if (p >= 41) return "C";
   if (p >= 33) return "P";
   return "F";
+}
+
+export function getCharacterClass(cgpa) {
+  const g = parseFloat(cgpa);
+  if (g >= 9.0) return { title: "S-Class Sage", color: "#a855f7", glow: "rgba(168, 85, 247, 0.4)", desc: "Unrivaled academic master of the digital realm." };
+  if (g >= 8.0) return { title: "A-Class Specialist", color: "#5e6ad2", glow: "rgba(94, 106, 210, 0.4)", desc: "Highly skilled programmer and logical wizard." };
+  if (g >= 7.0) return { title: "B-Class Spellsword", color: "#10b981", glow: "rgba(16, 185, 129, 0.4)", desc: "Balanced theorist and practical code warrior." };
+  if (g >= 6.0) return { title: "C-Class Vanguard", color: "#f59e0b", glow: "rgba(245, 158, 11, 0.4)", desc: "Determined operator navigating complex systems." };
+  if (g >= 5.0) return { title: "D-Class Initiate", color: "#6b7280", glow: "rgba(107, 114, 128, 0.4)", desc: "Apprentice scholar gathering code and credits." };
+  return { title: "F-Class Challenger", color: "#ef4444", glow: "rgba(239, 68, 68, 0.4)", desc: "Quest active: Rebuild focus to unlock hidden potentials." };
 }

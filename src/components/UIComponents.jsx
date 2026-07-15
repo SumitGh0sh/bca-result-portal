@@ -1,16 +1,15 @@
-import React from "react";
 
-export const Pill = ({ children, color = "#f59e0b", style = {} }) => (
+export const Pill = ({ children, color = "#5e6ad2", style = {} }) => (
   <span style={{
     display: "inline-flex",
     alignItems: "center",
-    padding: "2px 8px",
+    padding: "3px 10px",
     borderRadius: "9999px",
     fontSize: 11,
     fontWeight: 600,
-    letterSpacing: ".02em",
-    background: color + "15",
-    border: `1px solid ${color}30`,
+    letterSpacing: "0.02em",
+    background: color + "12",
+    border: `1px solid ${color}25`,
     color,
     ...style
   }}>
@@ -25,9 +24,16 @@ export const Card = ({ children, theme, style = {}, className = "", ...props }) 
       background: theme.surface,
       border: `1px solid ${theme.border}`,
       borderRadius: 12,
-      boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
-      overflow: "hidden",
+      transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
       ...style
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = theme.borderHi;
+      e.currentTarget.style.background = theme.raised;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = theme.border;
+      e.currentTarget.style.background = theme.surface;
     }}
     {...props}
   >
@@ -38,12 +44,12 @@ export const Card = ({ children, theme, style = {}, className = "", ...props }) 
 export const Label = ({ children, theme, style = {} }) => (
   <label style={{
     display: "block",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 600,
     color: theme.muted,
     marginBottom: 6,
     textTransform: "uppercase",
-    letterSpacing: ".05em",
+    letterSpacing: "0.05em",
     ...style
   }}>
     {children}
@@ -55,16 +61,16 @@ export const Input = ({ theme, style = {}, className = "shadcn-input", ...props 
     className={className}
     style={{
       width: "100%",
-      padding: "10px 14px",
+      padding: "8px 12px",
       background: theme.surface,
       border: `1px solid ${theme.border}`,
       borderRadius: 8,
       color: theme.text,
-      fontSize: 14,
+      fontSize: 13,
       outline: "none",
       boxSizing: "border-box",
       fontFamily: "inherit",
-      transition: "all 0.2s ease",
+      transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
       ...style
     }}
     {...props}
@@ -75,17 +81,17 @@ export const Select = ({ theme, children, style = {}, className = "shadcn-select
   <select
     className={className}
     style={{
-      padding: "10px 14px",
+      padding: "8px 12px",
       background: theme.surface,
       border: `1px solid ${theme.border}`,
       borderRadius: 8,
       color: theme.text,
-      fontSize: 14,
+      fontSize: 13,
       outline: "none",
       cursor: "pointer",
       fontFamily: "inherit",
       boxSizing: "border-box",
-      transition: "all 0.2s ease",
+      transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
       ...style
     }}
     {...props}
@@ -95,12 +101,12 @@ export const Select = ({ theme, children, style = {}, className = "shadcn-select
 );
 
 export const Button = ({ theme, children, variant = "primary", style = {}, ...props }) => {
-  let bg = theme.gold;
-  let fg = theme.bg === "#090514" ? "#090514" : "#ffffff";
-  let border = `1px solid ${theme.gold}`;
+  let bg = theme.gold; // Lavender Accent
+  let fg = "#ffffff";
+  let border = "1px solid transparent";
 
   if (variant === "secondary") {
-    bg = theme.raised;
+    bg = theme.surface;
     fg = theme.text;
     border = `1px solid ${theme.border}`;
   } else if (variant === "outline") {
@@ -112,29 +118,49 @@ export const Button = ({ theme, children, variant = "primary", style = {}, ...pr
     fg = theme.muted;
     border = "1px solid transparent";
   }
+
   return (
     <button
       onMouseEnter={(e) => {
-        e.currentTarget.style.filter = "brightness(1.05)";
+        if (variant === "primary") {
+          e.currentTarget.style.background = theme.goldDim; // hover state (#828fff)
+        } else if (variant === "secondary" || variant === "outline") {
+          e.currentTarget.style.background = theme.raised;
+          e.currentTarget.style.borderColor = theme.borderHi;
+        } else if (variant === "ghost") {
+          e.currentTarget.style.background = theme.raised;
+          e.currentTarget.style.color = theme.text;
+        }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.filter = "none";
+        if (variant === "primary") {
+          e.currentTarget.style.background = theme.gold;
+        } else if (variant === "secondary") {
+          e.currentTarget.style.background = theme.surface;
+          e.currentTarget.style.borderColor = theme.border;
+        } else if (variant === "outline") {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.borderColor = theme.border;
+        } else if (variant === "ghost") {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = theme.muted;
+        }
       }}
       style={{
-        padding: "10px 16px",
+        padding: "8px 14px",
         borderRadius: 8,
         border,
         background: bg,
         color: fg,
         fontSize: 13,
-        fontWeight: 600,
+        fontWeight: 500,
         cursor: "pointer",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: 6,
         fontFamily: "inherit",
-        transition: "all 0.2s ease",
+        transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         ...style
       }}
       {...props}

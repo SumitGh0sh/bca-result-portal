@@ -5,9 +5,11 @@ import {
   STUDENTS,
   makeTheme,
   gradeColor,
-  getGrade
+  getGrade,
+  getCharacterClass
 } from "./data/mockData";
 import { Pill, Card, Label, Input, Select, Button } from "./components/UIComponents";
+import RadarChart from "./components/RadarChart";
 import { gsap } from "gsap";
 import { toPng } from "html-to-image";
 import "./index.css";
@@ -93,20 +95,24 @@ export default function BCAPortal() {
   const [dark, setDark] = useState(true);
   const C = makeTheme(dark);
 
+  useEffect(() => {
+    document.body.className = dark ? "dark-theme-grid" : "light-theme-grid";
+  }, [dark]);
+
   const bandColors = dark ? [
-    "#c084fc", // Outstanding (Vibrant Lavender)
-    "#a78bfa", // Excellent (Medium Lavender)
+    "#5e6ad2", // Outstanding (Linear Primary Lavender)
+    "#707bc4", // Excellent (Slightly Muted)
     "#818cf8", // Very Good (Periwinkle)
     "#6366f1", // Good (Indigo)
-    "#4f46e5", // Average (Deep Indigo)
+    "#8a8f98", // Average (Ink Subtle)
     "#f43f5e"  // Below Average (Warning Rose)
   ] : [
-    "#7c3aed", // Outstanding (Violet)
-    "#8b5cf6", // Excellent (Purple)
-    "#4f46e5", // Very Good (Indigo)
-    "#2563eb", // Good (Blue)
-    "#1d4ed8", // Average (Deep Blue)
-    "#dc2626"  // Below Average (Red warning)
+    "#5e6ad2", // Outstanding (Stays Lavender)
+    "#4f46e5", // Excellent
+    "#2563eb", // Very Good
+    "#1d4ed8", // Good
+    "#71717a", // Average
+    "#ef4444"  // Below Average
   ];
 
   // Tabs: 0 = Search, 1 = Toppers, 2 = Analytics, 3 = Ledger
@@ -114,13 +120,18 @@ export default function BCAPortal() {
   
   // Semester Context: "1", "2", "cumulative"
   const [semContext, setSemContext] = useState("cumulative");
-
   // Search States
   const [roll, setRoll] = useState("");
   const [name, setName] = useState("");
   const [foundStudent, setFoundStudent] = useState(null);
   const [searchError, setSearchError] = useState("");
   const scorecardRef = useRef(null);
+
+  const downloadCgpa = foundStudent ? (foundStudent.sem2
+    ? ((parseFloat(foundStudent.sem1.sgpa) + parseFloat(foundStudent.sem2.sgpa)) / 2).toFixed(2)
+    : parseFloat(foundStudent.sem1.sgpa).toFixed(2)) : "0.00";
+  const downloadClass = foundStudent ? getCharacterClass(downloadCgpa) : null;
+  const downloadCp = foundStudent ? Math.round(downloadCgpa * 1000) : 0;
 
   // Ledger States
   const [ledgerSearch, setLedgerSearch] = useState("");
@@ -129,11 +140,6 @@ export default function BCAPortal() {
 
   // Topper States
   const [topperSubject, setTopperSubject] = useState("grand");
-
-  // Reset topper subject when semester context changes
-  useEffect(() => {
-    setTopperSubject("grand");
-  }, [semContext]);
 
   // GSAP animation effect for page elements
   useEffect(() => {
@@ -443,55 +449,94 @@ export default function BCAPortal() {
       display: "flex",
       flexDirection: "column",
       "--focus-border": C.gold,
-      "--focus-ring": dark ? "rgba(192, 132, 252, 0.25)" : "rgba(124, 58, 237, 0.2)"
+      "--focus-ring": dark ? "rgba(94, 106, 210, 0.2)" : "rgba(94, 106, 210, 0.1)"
     }}>
       
-      {/* ── HEADER (Modern, shadcn-like) ─────────────────────────────────── */}
+      {/* ── HEADER (Translucent Top Navigation) ─────────────────────────── */}
       <header style={{
-        background: C.surface,
+        background: dark ? "rgba(1, 1, 2, 0.85)" : "rgba(250, 250, 251, 0.85)",
         borderBottom: `1px solid ${C.border}`,
         position: "sticky",
         top: 0,
         zIndex: 50,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)"
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)"
       }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: `16px ${px}px`, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: `12px ${px}px`, display: "flex", flexDirection: "column", gap: 12 }}>
           
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{
-                width: 38,
-                height: 38,
+                width: 34,
+                height: 34,
                 borderRadius: 8,
-                background: C.raised,
-                border: `1px solid ${C.border}`,
+                background: C.surface,
+                border: `1px solid ${C.borderHi}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 16,
-                fontWeight: "bold",
+                fontSize: 15,
+                fontWeight: 700,
+                fontFamily: "monospace",
                 color: C.gold
               }}>
                 B
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? 8 : 10, letterSpacing: 2, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>
+                <div className="eyebrow" style={{ fontSize: isMobile ? 8 : 9, color: C.dim, fontWeight: 600 }}>
                   Jharkhand University of Technology
                 </div>
-                <div style={{ fontSize: isMobile ? 15 : 20, fontWeight: 800, letterSpacing: "-0.02em", color: C.text, marginTop: 1 }}>
+                <h1 className="heading-section" style={{ fontSize: isMobile ? 14 : 17, fontWeight: 700, color: C.text, margin: "1px 0 0" }}>
                   BCA Academic Result Portal
-                </div>
+                </h1>
               </div>
             </div>
 
             {/* Theme Toggle Switch */}
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {(foundStudent || tab !== 0) && (
+                <button
+                  onClick={() => {
+                    setFoundStudent(null);
+                    setRoll("");
+                    setName("");
+                    setSearchError("");
+                    setTab(0);
+                  }}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 8,
+                    border: `1px solid ${C.border}`,
+                    background: C.surface,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: C.text,
+                    transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = C.borderHi;
+                    e.currentTarget.style.background = C.raised;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = C.border;
+                    e.currentTarget.style.background = C.surface;
+                  }}
+                  title="Search New Student"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => setDark(d => !d)}
                 style={{
-                  width: 38,
-                  height: 38,
+                  width: 34,
+                  height: 34,
                   borderRadius: 8,
                   border: `1px solid ${C.border}`,
                   background: C.surface,
@@ -501,14 +546,22 @@ export default function BCAPortal() {
                   justifyContent: "center",
                   color: C.text
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = C.borderHi;
+                  e.currentTarget.style.background = C.raised;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = C.border;
+                  e.currentTarget.style.background = C.surface;
+                }}
                 title={dark ? "Light Mode" : "Dark Mode"}
               >
                 {dark ? (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
                 ) : (
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/>
                   </svg>
                 )}
@@ -517,13 +570,13 @@ export default function BCAPortal() {
           </div>
 
           {/* Sub-header Controls: Semester Switch + Tab Selector */}
-          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 12, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: 10, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
             
-            {/* Semester selector context (Shadcn Tabs list style) */}
+            {/* Semester selector context */}
             <div style={{
               display: "inline-flex",
-              background: C.raised,
-              padding: 3,
+              background: C.surface,
+              padding: 2,
               borderRadius: 8,
               border: `1px solid ${C.border}`,
               gap: 2
@@ -535,20 +588,22 @@ export default function BCAPortal() {
               ].map((s) => (
                 <button
                   key={s.id}
-                  onClick={() => setSemContext(s.id)}
+                  onClick={() => {
+                    setSemContext(s.id);
+                    setTopperSubject("grand");
+                  }}
                   style={{
                     flex: 1,
-                    padding: "6px 12px",
+                    padding: "5px 10px",
                     borderRadius: 6,
-                    border: "none",
-                    background: semContext === s.id ? C.surface : "transparent",
-                    color: semContext === s.id ? C.gold : C.muted,
-                    fontSize: 12,
+                    border: `1px solid ${semContext === s.id ? C.border : "transparent"}`,
+                    background: semContext === s.id ? C.raised : "transparent",
+                    color: semContext === s.id ? C.text : C.muted,
+                    fontSize: 11,
                     fontWeight: 600,
                     cursor: "pointer",
-                    boxShadow: semContext === s.id && !dark ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
                     whiteSpace: "nowrap",
-                    transition: "color 0.2s, background-color 0.2s"
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
                   }}
                 >
                   {s.label}
@@ -557,9 +612,9 @@ export default function BCAPortal() {
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ display: "flex", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
+            <div style={{ display: "flex", gap: 2, overflowX: "auto", scrollbarWidth: "none" }}>
               {[
-                { id: 0, label: "Search Result" },
+                ...(foundStudent ? [{ id: 0, label: "Report Card" }] : []),
                 { id: 1, label: "Toppers" },
                 { id: 2, label: "Class Analytics" },
                 { id: 3, label: "Student Ledger" }
@@ -568,19 +623,19 @@ export default function BCAPortal() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   style={{
-                    padding: "8px 14px",
-                    borderRadius: 8,
-                    border: `1px solid ${tab === t.id ? C.borderHi : "transparent"}`,
-                    background: tab === t.id ? C.raised : "transparent",
+                    padding: "6px 12px",
+                    borderRadius: 6,
+                    border: `1px solid ${tab === t.id ? C.border : "transparent"}`,
+                    background: tab === t.id ? C.surface : "transparent",
                     color: tab === t.id ? C.text : C.muted,
-                    fontSize: 13,
-                    fontWeight: 600,
+                    fontSize: 12,
+                    fontWeight: 500,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
                     whiteSpace: "nowrap",
-                    transition: "all 0.2s ease"
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
                   }}
                 >
                   {renderTabIcon(t.id, tab === t.id, C)}
@@ -598,10 +653,12 @@ export default function BCAPortal() {
 
         {/* ════════════ TABS 0: SEARCH RESULT ════════════ */}
         {tab === 0 && (
-          <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
             
-            {/* Input Form Card */}
-            <Card theme={C} className="gsap-fade-in">
+            {/* Input Form Card - Hidden when showing student profile */}
+            {!foundStudent && (
+              <div style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
+                <Card theme={C} className="gsap-fade-in">
               <div style={{ padding: isMobile ? 20 : 28 }}>
                 <div style={{ marginBottom: 20 }}>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Lookup Academic Records</h3>
@@ -676,6 +733,8 @@ export default function BCAPortal() {
                 )}
               </div>
             </Card>
+          </div>
+            )}
 
             {/* Results Report Card */}
             {foundStudent && (
@@ -778,8 +837,16 @@ export default function BCAPortal() {
                   </div>
                 </div>
 
-                {/* Comparative View / Specific Semester Tables */}
-                {(semContext === "1" || semContext === "cumulative") && (
+                {/* Comparative View / Specific Semester Tables & Radar Chart */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr",
+                  gap: 16,
+                  alignItems: "start"
+                }}>
+                  {/* Left Column: Tables */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {(semContext === "1" || semContext === "cumulative") && (
                   <Card theme={C}>
                     <div style={{ padding: 24 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -1058,6 +1125,11 @@ export default function BCAPortal() {
                     </div>
                   </Card>
                 )}
+                  </div>
+
+                  {/* Right Column: Gamified Radar & RPG Stats */}
+                  <RadarChart student={foundStudent} semContext={semContext} theme={C} isMobile={isMobile} />
+                </div>
 
               </div>
 
@@ -1068,16 +1140,15 @@ export default function BCAPortal() {
                   style={{
                     width: 900,
                     height: 580,
-                    background: "radial-gradient(circle at 10% 10%, #171026 0%, #06040d 100%)",
+                    background: "#010102",
                     position: "relative",
                     overflow: "hidden",
                     fontFamily: "system-ui, -apple-system, sans-serif"
                   }}
                 >
                   {/* Ambient Background Blobs */}
-                  <div style={{ width: 320, height: 320, borderRadius: "50%", background: "rgba(192, 132, 252, 0.16)", filter: "blur(60px)", top: "-60px", left: "-60px", position: "absolute" }} />
-                  <div style={{ width: 320, height: 320, borderRadius: "50%", background: "rgba(124, 58, 237, 0.16)", filter: "blur(60px)", bottom: "-60px", right: "-60px", position: "absolute" }} />
-                  <div style={{ width: 220, height: 220, borderRadius: "50%", background: "rgba(245, 158, 11, 0.08)", filter: "blur(40px)", top: 160, left: 340, position: "absolute" }} />
+                  <div style={{ width: 500, height: 500, borderRadius: "50%", background: "rgba(94, 106, 210, 0.12)", filter: "blur(80px)", top: "-150px", left: "200px", position: "absolute" }} />
+                  <div style={{ width: 300, height: 300, borderRadius: "50%", background: "rgba(39, 166, 68, 0.06)", filter: "blur(60px)", bottom: "-80px", right: "-80px", position: "absolute" }} />
 
                   {/* Glassmorphism Inner Card Container */}
                   <div style={{
@@ -1086,10 +1157,10 @@ export default function BCAPortal() {
                     bottom: 24,
                     left: 24,
                     right: 24,
-                    background: "rgba(255, 255, 255, 0.025)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    background: "rgba(15, 16, 17, 0.65)",
+                    border: "1px solid rgba(35, 37, 42, 0.6)",
                     borderRadius: 16,
-                    boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.5)",
+                    boxShadow: "0 24px 60px rgba(0, 0, 0, 0.8)",
                     padding: "32px 40px",
                     display: "flex",
                     flexDirection: "column",
@@ -1099,16 +1170,16 @@ export default function BCAPortal() {
                     {/* Header */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 2, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase" }}>Jharkhand University of Technology</div>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#ffffff", marginTop: 2, letterSpacing: 0.5 }}>BCA RESULT PORTAL</div>
+                        <div style={{ fontSize: 8, fontWeight: 600, letterSpacing: 1.5, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase" }}>Jharkhand University of Technology</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: "#ffffff", marginTop: 2, letterSpacing: 0.5 }}>BCA RESULT PORTAL</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <span style={{
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: 700,
-                          color: "#c084fc",
-                          border: "1px solid rgba(192, 132, 252, 0.3)",
-                          background: "rgba(192, 132, 252, 0.1)",
+                          color: "#828fff",
+                          border: "1px solid rgba(94, 106, 210, 0.3)",
+                          background: "rgba(94, 106, 210, 0.1)",
                           padding: "4px 10px",
                           borderRadius: 20,
                           letterSpacing: 0.5
@@ -1121,10 +1192,26 @@ export default function BCAPortal() {
                     {/* Student Profile */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 }}>
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Name</div>
+                        <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Profile</div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.name}</div>
-                        <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)", marginTop: 4 }}>
-                          ROLL NO: <span style={{ color: "#c084fc", fontWeight: 600 }}>{foundStudent.rollNo}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                          <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)" }}>
+                            ROLL NO: <span style={{ color: "#828fff", fontWeight: 600 }}>{foundStudent.rollNo}</span>
+                          </span>
+                          {downloadClass && (
+                            <span style={{
+                              fontSize: 9,
+                              fontWeight: 800,
+                              color: downloadClass.color,
+                              border: `1px solid ${downloadClass.color}40`,
+                              background: `${downloadClass.color}15`,
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              textTransform: "uppercase"
+                            }}>
+                              {downloadClass.title} ({downloadCp} CP)
+                            </span>
+                          )}
                         </div>
                       </div>
                       
@@ -1142,7 +1229,7 @@ export default function BCAPortal() {
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
                           <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Rank</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: "#f59e0b", marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].rc}</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: C.gold, marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].rc}</div>
                         </div>
                       </div>
                     </div>
@@ -1173,11 +1260,11 @@ export default function BCAPortal() {
                           </div>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Cumulative CGPA</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: "#f59e0b", marginTop: 2 }}>{studentRanks[foundStudent.rollNo].cgpa}</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: C.gold, marginTop: 2 }}>{studentRanks[foundStudent.rollNo].cgpa}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Result</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "#10b981", marginTop: 2 }}>PASSED</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.green, marginTop: 2 }}>PASSED</div>
                           </div>
                         </div>
                         
@@ -1202,7 +1289,7 @@ export default function BCAPortal() {
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px" }}>
                             {/* List Sem 1 Grades */}
                             <div>
-                              <div style={{ fontSize: 7, color: "#c084fc", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 1</div>
+                              <div style={{ fontSize: 7, color: "#828fff", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 1</div>
                               {SUBJECTS_SEM1.map((s) => {
                                 const mark = foundStudent.sem1[s.code];
                                 if (!mark) return null;
@@ -1219,7 +1306,7 @@ export default function BCAPortal() {
 
                             {/* List Sem 2 Grades */}
                             <div>
-                              <div style={{ fontSize: 7, color: "#c084fc", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 2</div>
+                              <div style={{ fontSize: 7, color: "#828fff", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 2</div>
                               {foundStudent.sem2 ? (
                                 SUBJECTS_SEM2.map((s) => {
                                   const mark = foundStudent.sem2[s.code];
@@ -1253,7 +1340,7 @@ export default function BCAPortal() {
                       <div style={{ display: "flex", gap: 32 }}>
                         <div style={{ textAlign: "center", position: "relative" }}>
                           <div style={{ position: "absolute", top: -16, left: 10, width: 80, height: 20, pointerEvents: "none" }}>
-                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#c084fc" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
+                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#828fff" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
                               <path d="M10,25 Q30,5 45,22 T70,10 T95,20" />
                             </svg>
                           </div>
@@ -1263,7 +1350,7 @@ export default function BCAPortal() {
                         </div>
                         <div style={{ textAlign: "center", position: "relative" }}>
                           <div style={{ position: "absolute", top: -16, left: 10, width: 80, height: 20, pointerEvents: "none" }}>
-                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
+                            <svg width="80" height="20" viewBox="0 0 100 40" fill="none" stroke="#27a644" strokeWidth="2.5" strokeLinecap="round" style={{ opacity: 0.75 }}>
                               <path d="M5,25 C15,10 25,5 40,25 C50,35 60,10 75,25 C85,35 90,20 95,20" />
                             </svg>
                           </div>
@@ -1323,7 +1410,11 @@ export default function BCAPortal() {
                 borderBottom: `1px solid ${C.border}`
               }}>
                 {/* 2nd Place */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div
+                  onClick={() => viewStudent(toppersList[1])}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}
+                  title={`View ${toppersList[1].name}'s Profile`}
+                >
                   <div style={{ textAlign: "center", marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div style={{
@@ -1370,7 +1461,11 @@ export default function BCAPortal() {
                 </div>
 
                 {/* 1st Place (Gold Podium - taller and highlighted) */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div
+                  onClick={() => viewStudent(toppersList[0])}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}
+                  title={`View ${toppersList[0].name}'s Profile`}
+                >
                   <div style={{ textAlign: "center", marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div style={{
@@ -1419,7 +1514,11 @@ export default function BCAPortal() {
                 </div>
 
                 {/* 3rd Place */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div
+                  onClick={() => viewStudent(toppersList[2])}
+                  style={{ display: "flex", flexDirection: "column", alignItems: "center", cursor: "pointer" }}
+                  title={`View ${toppersList[2].name}'s Profile`}
+                >
                   <div style={{ textAlign: "center", marginBottom: 12 }}>
                     <div style={{ display: "flex", justifyContent: "center" }}>
                       <div style={{
@@ -1471,8 +1570,8 @@ export default function BCAPortal() {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Label theme={C}>Toppers Ledger</Label>
               {toppersList.map((st, idx) => {
-                let score = 0;
-                let max = 100;
+                let score;
+                let max;
                 if (topperSubject === "grand") {
                   score = semContext === "1" ? st.sem1.grand : semContext === "2" ? st.sem2.grand : st.cgpa;
                   max = semContext === "cumulative" ? 10 : 800;
@@ -1482,7 +1581,13 @@ export default function BCAPortal() {
                 }
 
                 return (
-                  <Card theme={C} key={st.rollNo} style={{ transition: "border-color 0.2s" }}>
+                  <Card
+                    theme={C}
+                    key={st.rollNo}
+                    onClick={() => viewStudent(st)}
+                    style={{ cursor: "pointer", transition: "border-color 0.2s" }}
+                    title={`View ${st.name}'s Profile`}
+                  >
                     <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <div style={{
@@ -1517,8 +1622,7 @@ export default function BCAPortal() {
 
                         <div>
                           <div
-                            onClick={() => viewStudent(st)}
-                            style={{ fontWeight: 700, color: C.text, cursor: "pointer", textDecoration: "hover underline" }}
+                            style={{ fontWeight: 700, color: C.text }}
                           >
                             {st.name}
                           </div>
@@ -1958,8 +2062,8 @@ export default function BCAPortal() {
                         const isFailedSem1 = s.sem1.result.includes("PROMOTED");
                         const isFailedSem2 = s.sem2 ? s.sem2.result.includes("PROMOTED") : false;
                         
-                        let outcomeColor = C.green;
-                        let outcomeText = "Passed";
+                        let outcomeColor;
+                        let outcomeText;
 
                         if (semContext === "1") {
                           outcomeText = s.sem1.result;
