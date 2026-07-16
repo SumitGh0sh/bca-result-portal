@@ -116,9 +116,9 @@ const LinkedinIcon = ({ color, size = 18, style = {} }) => (
 );
 
 function useIsMobile() {
-  const [m, setM] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  const [m, setM] = useState(typeof window !== "undefined" ? window.innerWidth < 1024 : false);
   useEffect(() => {
-    const h = () => setM(window.innerWidth < 768);
+    const h = () => setM(window.innerWidth < 1024);
     window.addEventListener("resize", h);
     return () => window.removeEventListener("resize", h);
   }, []);
@@ -671,7 +671,7 @@ export default function BCAPortal() {
           <h4 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
             <TrophyIcon size={14} style={{ marginRight: 6 }} /> Academic Standing Differential
           </h4>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+          <div className="aesthetic-scrollbar" style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(140px, 1fr))", gap: 12, overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch", paddingBottom: 6 }}>
             <div style={{ padding: 12, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}`, textAlign: "center" }}>
               <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 1 Rank</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: "4px 0" }}>#{r1_1} vs #{r1_2}</div>
@@ -1805,13 +1805,13 @@ return (
                         alignItems: "start"
                       }}>
                         {/* Left Column: standing details & unified subject combat tables */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
                           {renderStandingComparison()}
                           {renderUnifiedSubjectTable()}
                         </div>
 
                         {/* Right Column: Comparative Charts & Achievements */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="sidebar-gamified">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }} className="sidebar-gamified">
                           <RadarChart 
                             student={activeStudent} 
                             opponent={compareMode ? (activeStudent === foundStudent ? opponentStudent : foundStudent) : null} 
