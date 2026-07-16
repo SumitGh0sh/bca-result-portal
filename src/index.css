@@ -103,3 +103,46 @@ button:active {
   border-color: var(--focus-border, #5e6ad2) !important;
   box-shadow: 0 0 0 3px var(--focus-ring, rgba(94, 106, 210, 0.2)) !important;
 }
+/* Custom scrollbar and swipe indicator for responsive tables */
+.aesthetic-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 106, 210, 0.35) rgba(255, 255, 255, 0.03);
+}
+
+.aesthetic-scrollbar::-webkit-scrollbar {
+  height: 5px;
+}
+
+.aesthetic-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 99px;
+}
+
+.aesthetic-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(94, 106, 210, 0.35);
+  border-radius: 99px;
+}
+
+.aesthetic-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 106, 210, 0.55);
+}
+
+@keyframes swipeLeft {
+  0%, 100% { transform: translateX(0); opacity: 0.5; }
+  50% { transform: translateX(-4px); opacity: 1; }
+}
+
+@keyframes swipeRight {
+  0%, 100% { transform: translateX(0); opacity: 0.5; }
+  50% { transform: translateX(4px); opacity: 1; }
+}
+
+.swipe-arrow-left {
+  display: inline-block;
+  animation: swipeLeft 1.5s infinite ease-in-out;
+}
+
+.swipe-arrow-right {
+  display: inline-block;
+  animation: swipeRight 1.5s infinite ease-in-out;
+}

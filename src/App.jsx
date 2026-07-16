@@ -731,7 +731,30 @@ export default function BCAPortal() {
             </div>
           ) : (
             <>
-              <div style={{ overflowX: "auto" }}>
+              {isMobile && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: C.gold,
+                  background: C.gold + "10",
+                  padding: "4px 12px",
+                  borderRadius: 20,
+                  width: "fit-content",
+                  margin: "0 auto 12px",
+                  border: `1px solid ${C.gold}20`,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase"
+                }}>
+                  <span className="swipe-arrow-left">←</span>
+                  <span>Swipe table sideways</span>
+                  <span className="swipe-arrow-right">→</span>
+                </div>
+              )}
+              <div className="aesthetic-scrollbar" style={{ overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch" }}>
                 <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
@@ -2009,7 +2032,7 @@ return (
                           })}
                         </div>
                       ) : (
-                        <div style={{ overflowX: "auto" }}>
+                        <div className="aesthetic-scrollbar" style={{ overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch" }}>
                           <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                             <thead>
                               <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
@@ -2145,7 +2168,7 @@ return (
                               })}
                             </div>
                           ) : (
-                            <div style={{ overflowX: "auto" }}>
+                            <div className="aesthetic-scrollbar" style={{ overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch" }}>
                               <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                                 <thead>
                                   <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
@@ -3205,7 +3228,7 @@ return (
               </div>
             ) : (
               <Card theme={C}>
-                <div style={{ overflowX: "auto" }}>
+                <div className="aesthetic-scrollbar" style={{ overflowX: "auto", maxWidth: "100%", WebkitOverflowScrolling: "touch" }}>
                   <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left", background: C.raised }}>
