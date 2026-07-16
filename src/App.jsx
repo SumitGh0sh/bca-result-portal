@@ -732,7 +732,7 @@ export default function BCAPortal() {
           ) : (
             <>
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                   <thead>
                     <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
                       <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
@@ -1002,7 +1002,10 @@ return (
               padding: 2,
               borderRadius: 8,
               border: `1px solid ${C.border}`,
-              gap: 2
+              gap: 2,
+              overflowX: "auto",
+              maxWidth: "100%",
+              scrollbarWidth: "none"
             }}>
               {[
                 { id: "1", label: "Semester 1" },
@@ -2007,7 +2010,7 @@ return (
                         </div>
                       ) : (
                         <div style={{ overflowX: "auto" }}>
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                             <thead>
                               <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
                                 <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
@@ -2143,7 +2146,7 @@ return (
                             </div>
                           ) : (
                             <div style={{ overflowX: "auto" }}>
-                              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                              <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                                 <thead>
                                   <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
                                     <th style={{ padding: "8px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
@@ -3203,7 +3206,7 @@ return (
             ) : (
               <Card theme={C}>
                 <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <table style={{ width: "100%", minWidth: 550, borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left", background: C.raised }}>
                         <th style={{ padding: "12px 16px", color: C.muted, fontWeight: 600 }}>Rank</th>
