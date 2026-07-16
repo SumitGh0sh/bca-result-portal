@@ -11,6 +11,8 @@ import {
 } from "./data/mockData";
 import { Pill, Card, Label, Input, Select, Button, ClassIcon } from "./components/UIComponents";
 import RadarChart from "./components/RadarChart";
+import { sfx } from "./utils/audio";
+import { getUnlockedAchievements } from "./data/achievements";
 import { gsap } from "gsap";
 import { toPng } from "html-to-image";
 import "./index.css";
@@ -64,6 +66,38 @@ const WarningIcon = ({ color, size = 16, style = {} }) => (
     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
     <line x1="12" y1="9" x2="12" y2="13"></line>
     <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+);
+
+const SwordIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="15" y1="5" x2="19" y2="9" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="5" y1="9" x2="9" y2="5" />
+  </svg>
+);
+
+const ShieldIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const TrophyIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+    <path d="M12 2a6 6 0 0 0-6 6v3.5a6 6 0 0 0 12 0V8a6 6 0 0 0-6-6z" />
+  </svg>
+);
+
+const CrownIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z" />
+    <path d="M3 20h18" />
   </svg>
 );
 
@@ -130,6 +164,19 @@ export default function BCAPortal() {
   const [nameFocused, setNameFocused] = useState(false);
   const scorecardRef = useRef(null);
 
+  // SFX Volume State
+  const [sfxMuted, setSfxMuted] = useState(sfx.isMuted());
+
+  // Battle Mode (Opponent) States
+  const [compareMode, setCompareMode] = useState(false);
+  const [opponentRoll, setOpponentRoll] = useState("");
+  const [opponentName, setOpponentName] = useState("");
+  const [opponentStudent, setOpponentStudent] = useState(null);
+  const [opponentRollFocused, setOpponentRollFocused] = useState(false);
+  const [opponentNameFocused, setOpponentNameFocused] = useState(false);
+  const [battleFocus, setBattleFocus] = useState("player1");
+  const [battleActive, setBattleActive] = useState(false);
+
   const rollSuggestions = useMemo(() => {
     if (!roll.trim()) return [];
     const query = roll.trim();
@@ -142,6 +189,18 @@ export default function BCAPortal() {
     return STUDENTS.filter(st => st.name.toUpperCase().includes(query)).slice(0, 5);
   }, [name]);
 
+  const opponentRollSuggestions = useMemo(() => {
+    if (!opponentRoll.trim()) return [];
+    const query = opponentRoll.trim();
+    return STUDENTS.filter(st => st.rollNo.includes(query)).slice(0, 5);
+  }, [opponentRoll]);
+
+  const opponentNameSuggestions = useMemo(() => {
+    if (!opponentName.trim()) return [];
+    const query = opponentName.toUpperCase();
+    return STUDENTS.filter(st => st.name.toUpperCase().includes(query)).slice(0, 5);
+  }, [opponentName]);
+
   const selectSuggestedStudent = (student, searchType) => {
     if (searchType === "name") {
       setName(student.name);
@@ -152,6 +211,8 @@ export default function BCAPortal() {
     }
     setNameFocused(false);
     setRollFocused(false);
+    setBattleActive(false);
+    sfx.playSelect();
     setTimeout(() => {
       setFoundStudent(student);
       setSearchError("");
@@ -159,11 +220,44 @@ export default function BCAPortal() {
     }, 250);
   };
 
-  const downloadCgpa = foundStudent ? (foundStudent.sem2
+  const selectOpponentStudent = (student, searchType) => {
+    if (searchType === "name") {
+      setOpponentName(student.name);
+      setOpponentRoll("");
+    } else {
+      setOpponentRoll(student.rollNo);
+      setOpponentName("");
+    }
+    setOpponentNameFocused(false);
+    setOpponentRollFocused(false);
+    setBattleActive(false);
+    sfx.playSelect();
+    setTimeout(() => {
+      setOpponentStudent(student);
+      setSearchError("");
+    }, 250);
+  };
+
+  // Active student based on battle mode focus perspective
+  const activeStudent = (compareMode && opponentStudent && battleFocus === "player2") ? opponentStudent : foundStudent;
+
+  const downloadCgpa = activeStudent ? (activeStudent.sem2
+    ? ((parseFloat(activeStudent.sem1.sgpa) + parseFloat(activeStudent.sem2.sgpa)) / 2).toFixed(2)
+    : parseFloat(activeStudent.sem1.sgpa).toFixed(2)) : "0.00";
+  const downloadClass = activeStudent ? getCharacterClass(downloadCgpa) : null;
+  const downloadCp = activeStudent ? Math.round(downloadCgpa * 1000) : 0;
+
+  const student1Cgpa = foundStudent ? (foundStudent.sem2
     ? ((parseFloat(foundStudent.sem1.sgpa) + parseFloat(foundStudent.sem2.sgpa)) / 2).toFixed(2)
     : parseFloat(foundStudent.sem1.sgpa).toFixed(2)) : "0.00";
-  const downloadClass = foundStudent ? getCharacterClass(downloadCgpa) : null;
-  const downloadCp = foundStudent ? Math.round(downloadCgpa * 1000) : 0;
+  const student1Class = foundStudent ? getCharacterClass(student1Cgpa) : null;
+  const student1Cp = foundStudent ? Math.round(student1Cgpa * 1000) : 0;
+
+  const student2Cgpa = opponentStudent ? (opponentStudent.sem2
+    ? ((parseFloat(opponentStudent.sem1.sgpa) + parseFloat(opponentStudent.sem2.sgpa)) / 2).toFixed(2)
+    : parseFloat(opponentStudent.sem1.sgpa).toFixed(2)) : "0.00";
+  const student2Class = opponentStudent ? getCharacterClass(student2Cgpa) : null;
+  const student2Cp = opponentStudent ? Math.round(student2Cgpa * 1000) : 0;
 
   // Ledger States
   const [ledgerSearch, setLedgerSearch] = useState("");
@@ -172,6 +266,26 @@ export default function BCAPortal() {
 
   // Topper States
   const [topperSubject, setTopperSubject] = useState("grand");
+
+  // Dynamic Level-Up Fanfare triggers
+  useEffect(() => {
+    if (foundStudent) {
+      const g = activeStudent.sem2
+        ? ((parseFloat(activeStudent.sem1.sgpa) + parseFloat(activeStudent.sem2.sgpa)) / 2)
+        : parseFloat(activeStudent.sem1.sgpa);
+      if (g >= 8.0) {
+        sfx.playLevelUp();
+      } else {
+        sfx.playCoin();
+      }
+    }
+  }, [foundStudent]);
+
+  useEffect(() => {
+    if (opponentStudent) {
+      sfx.playCoin();
+    }
+  }, [opponentStudent]);
 
   // GSAP animation effect for page elements
   useEffect(() => {
@@ -278,12 +392,12 @@ export default function BCAPortal() {
   };
 
   const handleDownloadScorecard = () => {
-    if (!scorecardRef.current || !foundStudent) return;
+    if (!scorecardRef.current || !activeStudent) return;
     
     toPng(scorecardRef.current, { cacheBust: true, scale: 2 })
       .then((dataUrl) => {
         const link = document.createElement("a");
-        link.download = `scorecard-${foundStudent.rollNo}.png`;
+        link.download = `scorecard-${activeStudent.rollNo}.png`;
         link.href = dataUrl;
         link.click();
       })
@@ -473,7 +587,284 @@ export default function BCAPortal() {
     return dist;
   }, [studentRanks]);
 
-  return (
+  
+  // Synchronous and robust battle initiation search
+  const handleInitiateBattle = () => {
+    setSearchError("");
+    
+    const r1 = roll.trim().toUpperCase();
+    const n1 = name.trim().toUpperCase();
+    const r2 = opponentRoll.trim().toUpperCase();
+    const n2 = opponentName.trim().toUpperCase();
+
+    if (!r1 && !n1) {
+      setSearchError("Please enter Roll No or Name for Player 1.");
+      sfx.playError();
+      return;
+    }
+    if (!r2 && !n2) {
+      setSearchError("Please enter Roll No or Name for Player 2.");
+      sfx.playError();
+      return;
+    }
+
+    const s1 = STUDENTS.find((st) => {
+      const matchRoll = r1 && st.rollNo.toUpperCase() === r1;
+      const matchName = n1 && st.name.toUpperCase().includes(n1);
+      return matchRoll || matchName;
+    });
+
+    const s2 = STUDENTS.find((st) => {
+      const matchRoll = r2 && st.rollNo.toUpperCase() === r2;
+      const matchName = n2 && st.name.toUpperCase().includes(n2);
+      return matchRoll || matchName;
+    });
+
+    if (s1 && s2) {
+      setFoundStudent(s1);
+      setRoll(s1.rollNo);
+      setName(s1.name);
+
+      setOpponentStudent(s2);
+      setOpponentRoll(s2.rollNo);
+      setOpponentName(s2.name);
+
+      setBattleActive(true);
+      setBattleFocus("player1");
+      sfx.playBattle();
+    } else {
+      let errMsg = "Could not resolve student records.";
+      if (!s1 && !s2) {
+        errMsg = "Both Player 1 and Player 2 records were not found.";
+      } else if (!s1) {
+        errMsg = "Player 1 record not found in database.";
+      } else {
+        errMsg = "Player 2 record not found in database.";
+      }
+      setSearchError(errMsg);
+      sfx.playError();
+      setBattleActive(false);
+    }
+  };
+
+  // Helper to render Standing Comparison
+  const renderStandingComparison = () => {
+    if (!foundStudent || !opponentStudent) return null;
+    const r1_1 = studentRanks[foundStudent.rollNo].r1;
+    const r1_2 = studentRanks[opponentStudent.rollNo].r1;
+    const r2_1 = studentRanks[foundStudent.rollNo].r2;
+    const r2_2 = studentRanks[opponentStudent.rollNo].r2;
+    const rc_1 = studentRanks[foundStudent.rollNo].rc;
+    const rc_2 = studentRanks[opponentStudent.rollNo].rc;
+
+    const getDiffBadge = (val1, val2) => {
+      if (val1 === "-" || val2 === "-") return <span style={{ fontSize: 9, color: C.muted }}>Held</span>;
+      const diff = val2 - val1;
+      if (diff > 0) return <span style={{ fontSize: 9, color: C.green, fontWeight: 700 }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }}><path d="M12 4l-8 12h16z"/></svg> Player 1 (+{diff} ranks ahead)</span>;
+      if (diff < 0) return <span style={{ fontSize: 9, color: C.amber, fontWeight: 700 }}><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }}><path d="M12 20l8-12H4z"/></svg> Player 2 (+{-diff} ranks ahead)</span>;
+      return <span style={{ fontSize: 9, color: C.muted }}>Tied</span>;
+    };
+
+    return (
+      <Card theme={C}>
+        <div style={{ padding: 20 }}>
+          <h4 style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <TrophyIcon size={14} style={{ marginRight: 6 }} /> Academic Standing Differential
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ padding: 12, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 1 Rank</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: "4px 0" }}>#{r1_1} vs #{r1_2}</div>
+              {getDiffBadge(r1_1, r1_2)}
+            </div>
+            <div style={{ padding: 12, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 2 Rank</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, margin: "4px 0" }}>#{r2_1} vs #{r2_2}</div>
+              {getDiffBadge(r2_1, r2_2)}
+            </div>
+            <div style={{ padding: 12, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}`, textAlign: "center" }}>
+              <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Year 1 Rank</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.gold, margin: "4px 0" }}>#{rc_1} vs #{rc_2}</div>
+              {getDiffBadge(rc_1, rc_2)}
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderUnifiedSubjectTable = () => {
+    if (!foundStudent || !opponentStudent) return null;
+    const isSem1Only = semContext === "1";
+    const isSem2Only = semContext === "2";
+    const isCumulative = semContext === "cumulative";
+    
+    let subjects = [];
+    if (isSem1Only) {
+      subjects = SUBJECTS_SEM1;
+    } else if (isSem2Only) {
+      subjects = SUBJECTS_SEM2;
+    } else {
+      subjects = [...SUBJECTS_SEM1, ...SUBJECTS_SEM2];
+    }
+
+    const data1 = foundStudent;
+    const data2 = opponentStudent;
+    const hasSem2_2 = !!data2.sem2;
+
+    let p1Wins = 0;
+    let p2Wins = 0;
+    let ties = 0;
+
+    return (
+      <Card theme={C}>
+        <div style={{ padding: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              <SwordIcon size={14} style={{ marginRight: 6 }} /> Subject Combat Analysis (Sem {semContext === "cumulative" ? "1 & 2" : semContext})
+            </h4>
+          </div>
+
+          {(semContext === "2" && !hasSem2_2) ? (
+            <div style={{ padding: "30px 16px", textAlign: "center", color: C.muted, fontSize: 13, background: C.raised, border: `1px dashed ${C.border}`, borderRadius: 8 }}>
+              Player 2 Semester 2 results are held/missing. Cannot run subject combat for Semester 2.
+            </div>
+          ) : (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}`, textAlign: "left" }}>
+                      <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600 }}>Code</th>
+                      <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600 }}>Subject Name</th>
+                      <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>{data1.name.split(" ")[0]}</th>
+                      <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>{data2.name.split(" ")[0]}</th>
+                      <th style={{ padding: "10px 12px", color: C.muted, fontWeight: 600, textAlign: "center" }}>Victor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subjects.map((sub) => {
+                      const isSubSem1 = SUBJECTS_SEM1.some(s => s.code === sub.code);
+                      const sData1 = isSubSem1 ? data1.sem1[sub.code] : (data1.sem2 ? data1.sem2[sub.code] : null);
+                      const sData2 = isSubSem1 ? data2.sem1[sub.code] : (data2.sem2 ? data2.sem2[sub.code] : null);
+                      if (!sData1 && !sData2) return null;
+                      
+                      const tot1 = sData1 ? sData1[2] : 0;
+                      const tot2 = sData2 ? sData2[2] : 0;
+                      const maxVal = sub.maxFin + sub.maxInt;
+                      const grade1 = sData1 ? getGrade(tot1, maxVal) : "N/A";
+                      const grade2 = sData2 ? getGrade(tot2, maxVal) : "N/A";
+
+                      let victorText = "Tie";
+                      let victorColor = C.muted;
+                      if (tot1 > tot2) {
+                        victorText = data1.name.split(" ")[0];
+                        victorColor = C.gold;
+                        p1Wins++;
+                      } else if (tot2 > tot1) {
+                        victorText = data2.name.split(" ")[0];
+                        victorColor = C.amber;
+                        p2Wins++;
+                      } else {
+                        ties++;
+                      }
+
+                      return (
+                        <tr key={sub.code} style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <td style={{ padding: "10px 12px", fontFamily: "monospace", fontWeight: 600, color: C.muted }}>{sub.code}</td>
+                          <td style={{ padding: "10px 12px", color: C.text }}>{sub.name}</td>
+                          <td style={{ padding: "10px 12px", textAlign: "center", color: tot1 > tot2 ? C.gold : C.text, fontWeight: tot1 > tot2 ? 700 : 500 }}>
+                            {sData1 ? `${tot1} (${grade1})` : "N/A"}
+                          </td>
+                          <td style={{ padding: "10px 12px", textAlign: "center", color: tot2 > tot1 ? C.amber : C.text, fontWeight: tot2 > tot1 ? 700 : 500 }}>
+                            {sData2 ? `${tot2} (${grade2})` : "N/A"}
+                          </td>
+                          <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                            <span style={{
+                              padding: "2px 6px",
+                              borderRadius: 4,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              background: victorColor + "15",
+                              border: `1px solid ${victorColor}30`,
+                              color: victorColor
+                            }}>
+                              {tot1 === tot2 ? "Tie" : (
+                                <span style={{ display: "inline-flex", alignItems: "center" }}>
+                                  <CrownIcon size={10} style={{ marginRight: 4 }} />
+                                  <span>{victorText}</span>
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 16, padding: "10px 14px", background: C.raised, borderRadius: 8, fontSize: 11, fontWeight: 700, color: C.muted, flexWrap: "wrap", gap: 10 }}>
+                <span>{data1.name.split(" ")[0]} Wins: <strong style={{ color: C.gold }}>{p1Wins}</strong></span>
+                <span>{data2.name.split(" ")[0]} Wins: <strong style={{ color: C.amber }}>{p2Wins}</strong></span>
+                <span>Ties: <strong>{ties}</strong></span>
+                <span>Overall Victor: <strong style={{ color: p1Wins > p2Wins ? C.gold : (p2Wins > p1Wins ? C.amber : C.text) }}>
+                  {p1Wins > p2Wins ? data1.name : (p2Wins > p1Wins ? data2.name : "Draw")}
+                </strong></span>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
+  const renderAchievementsDuel = () => {
+    if (!foundStudent || !opponentStudent) return null;
+    const ach1 = getUnlockedAchievements(foundStudent);
+    const ach2 = getUnlockedAchievements(opponentStudent);
+    
+    return (
+      <Card theme={C} style={{ padding: 20 }}>
+        <h4 className="heading-card" style={{ margin: "0 0 14px", fontSize: 13, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <SwordIcon size={14} style={{ marginRight: 6 }} /> Achievements Duel
+        </h4>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, fontWeight: 700, color: C.muted, marginBottom: 12 }}>
+          <span>{foundStudent.name.split(" ")[0]}: <strong style={{ color: C.gold }}>{ach1.length}</strong></span>
+          <span style={{ opacity: 0.5 }}>VS</span>
+          <span>{opponentStudent.name.split(" ")[0]}: <strong style={{ color: "#06b6d4" }}>{ach2.length}</strong></span>
+        </div>
+        
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.gold, textTransform: "uppercase", marginBottom: 2 }}>{foundStudent.name.split(" ")[0]}'s Quests</span>
+            {ach1.length === 0 ? (
+              <div style={{ fontSize: 9, color: C.muted, fontStyle: "italic" }}>No quests cleared.</div>
+            ) : ach1.map((ach, idx) => (
+              <div key={idx} style={{ padding: "6px 10px", background: C.raised, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>{ach.icon}</span>
+                <span style={{ fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={ach.desc}>{ach.title}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.amber, textTransform: "uppercase", marginBottom: 2 }}>{opponentStudent.name.split(" ")[0]}'s Quests</span>
+            {ach2.length === 0 ? (
+              <div style={{ fontSize: 9, color: C.muted, fontStyle: "italic" }}>No quests cleared.</div>
+            ) : ach2.map((ach, idx) => (
+              <div key={idx} style={{ padding: "6px 10px", background: C.raised, borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>{ach.icon}</span>
+                <span style={{ fontWeight: 700, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={ach.desc}>{ach.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+    
+return (
     <div style={{
       minHeight: "100vh",
       background: C.bg,
@@ -691,212 +1082,523 @@ export default function BCAPortal() {
             <div style={{ maxWidth: 800, width: "100%", margin: "0 auto" }}>
               <Card theme={C} className="gsap-fade-in">
               <div style={{ padding: isMobile ? 20 : 28 }}>
-                <div style={{ marginBottom: 20 }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Lookup Academic Records</h3>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Search results instantly using either university Roll Number or Student Name.</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.text }}>Lookup Academic Records</h3>
+                    <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Search results instantly or compare two students in Duel Mode.</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Button
+                      theme={C}
+                      variant={compareMode ? "outline" : "primary"}
+                      onClick={() => {
+                        setCompareMode(!compareMode);
+                        sfx.playSelect();
+                        setBattleActive(false);
+                        if (compareMode) {
+                          setOpponentStudent(null);
+                          setOpponentRoll("");
+                          setOpponentName("");
+                        }
+                      }}
+                      style={{ fontSize: 11, padding: "5px 12px", gap: 4 }}
+                    >
+                      {compareMode ? (
+                        <>
+                          <ShieldIcon size={12} style={{ marginRight: 4 }} />
+                          <span>Single Mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <SwordIcon size={12} style={{ marginRight: 4 }} />
+                          <span>Battle Mode</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", alignItems: "end", gap: 14 }}>
-                  <div style={{ position: "relative" }}>
-                    <Label theme={C}>University Roll No</Label>
-                    <Input
-                      theme={C}
-                      value={roll}
-                      onChange={(e) => setRoll(e.target.value)}
-                      placeholder="e.g. 24013590023"
-                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                      onFocus={() => setRollFocused(true)}
-                      onBlur={() => setTimeout(() => setRollFocused(false), 200)}
-                    />
-                    {rollFocused && rollSuggestions.length > 0 && (
-                      <div style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        background: C.surface,
-                        border: `1px solid ${C.borderHi}`,
-                        borderRadius: 8,
-                        marginTop: 4,
-                        boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
-                        zIndex: 1000,
-                        maxHeight: 250,
-                        overflowY: "auto",
-                        backdropFilter: "blur(12px)",
-                        WebkitBackdropFilter: "blur(12px)",
-                      }}>
-                        {rollSuggestions.map((st) => {
-                          const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
-                          return (
-                            <div
-                              key={st.rollNo}
-                               onMouseDown={() => selectSuggestedStudent(st, "roll")}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "8px 12px",
-                                borderBottom: `1px solid ${C.border}`,
-                                cursor: "pointer",
-                                transition: "background 0.2s",
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                            >
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: "50%",
-                                overflow: "hidden",
-                                background: C.raised,
-                                border: `1px solid ${C.border}`,
-                                flexShrink: 0
-                              }}>
-                                <img
-                                  src={getAvatarUrl(st)}
-                                  alt={st.name}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-                                <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {st.name}
+                {!compareMode ? (
+                  /* Standard Search Layout */
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr auto 1fr", alignItems: "end", gap: 14 }}>
+                    <div style={{ position: "relative" }}>
+                      <Label theme={C}>University Roll No</Label>
+                      <Input
+                        theme={C}
+                        value={roll}
+                        onChange={(e) => { setRoll(e.target.value); setBattleActive(false); }}
+                        placeholder="e.g. 24013590023"
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        onFocus={() => setRollFocused(true)}
+                        onBlur={() => setTimeout(() => setRollFocused(false), 200)}
+                      />
+                      {rollFocused && rollSuggestions.length > 0 && (
+                        <div style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          background: C.surface,
+                          border: `1px solid ${C.borderHi}`,
+                          borderRadius: 8,
+                          marginTop: 4,
+                          boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                          zIndex: 1000,
+                          maxHeight: 250,
+                          overflowY: "auto",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                        }}>
+                          {rollSuggestions.map((st) => {
+                            const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                            return (
+                              <div
+                                key={st.rollNo}
+                                onMouseDown={() => selectSuggestedStudent(st, "roll")}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  padding: "8px 12px",
+                                  borderBottom: `1px solid ${C.border}`,
+                                  cursor: "pointer",
+                                  transition: "background 0.2s",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <div style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                  background: C.raised,
+                                  border: `1px solid ${C.border}`,
+                                  flexShrink: 0
+                                }}>
+                                  <img
+                                    src={getAvatarUrl(st)}
+                                    alt={st.name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
                                 </div>
-                                <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
-                                  {st.rollNo}
+                                <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                  <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {st.name}
+                                  </div>
+                                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+                                    {st.rollNo}
+                                  </div>
                                 </div>
+                                <span style={{
+                                  fontSize: 8,
+                                  fontWeight: 800,
+                                  color: charClass.color,
+                                  border: `1px solid ${charClass.color}30`,
+                                  background: `${charClass.color}10`,
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  textTransform: "uppercase",
+                                  flexShrink: 0
+                                }}>
+                                  Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
+                                </span>
                               </div>
-                              <span style={{
-                                fontSize: 8,
-                                fontWeight: 800,
-                                color: charClass.color,
-                                border: `1px solid ${charClass.color}30`,
-                                background: `${charClass.color}10`,
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                textTransform: "uppercase",
-                                flexShrink: 0
-                              }}>
-                                Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                  <div style={{ textAlign: "center", paddingBottom: 10, fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: 1 }}>
-                    OR
-                  </div>
+                    <div style={{ textAlign: "center", paddingBottom: 10, fontSize: 11, color: C.muted, fontWeight: 600, letterSpacing: 1 }}>
+                      OR
+                    </div>
 
-                  <div style={{ position: "relative" }}>
-                    <Label theme={C}>Student Name</Label>
-                    <Input
-                      theme={C}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Sumit Ghosh"
-                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                      onFocus={() => setNameFocused(true)}
-                      onBlur={() => setTimeout(() => setNameFocused(false), 200)}
-                    />
-                    {nameFocused && nameSuggestions.length > 0 && (
-                      <div style={{
-                        position: "absolute",
-                        top: "100%",
-                        left: 0,
-                        right: 0,
-                        background: C.surface,
-                        border: `1px solid ${C.borderHi}`,
-                        borderRadius: 8,
-                        marginTop: 4,
-                        boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
-                        zIndex: 1000,
-                        maxHeight: 250,
-                        overflowY: "auto",
-                        backdropFilter: "blur(12px)",
-                        WebkitBackdropFilter: "blur(12px)",
-                      }}>
-                        {nameSuggestions.map((st) => {
-                          const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
-                          return (
-                            <div
-                              key={st.rollNo}
-                              onMouseDown={() => selectSuggestedStudent(st, "name")}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "8px 12px",
-                                borderBottom: `1px solid ${C.border}`,
-                                cursor: "pointer",
-                                transition: "background 0.2s",
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                            >
-                              <div style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: "50%",
-                                overflow: "hidden",
-                                background: C.raised,
-                                border: `1px solid ${C.border}`,
-                                flexShrink: 0
-                              }}>
-                                <img
-                                  src={getAvatarUrl(st)}
-                                  alt={st.name}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-                                <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                  {st.name}
+                    <div style={{ position: "relative" }}>
+                      <Label theme={C}>Student Name</Label>
+                      <Input
+                        theme={C}
+                        value={name}
+                        onChange={(e) => { setName(e.target.value); setBattleActive(false); }}
+                        placeholder="e.g. Sumit Ghosh"
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        onFocus={() => setNameFocused(true)}
+                        onBlur={() => setTimeout(() => setNameFocused(false), 200)}
+                      />
+                      {nameFocused && nameSuggestions.length > 0 && (
+                        <div style={{
+                          position: "absolute",
+                          top: "100%",
+                          left: 0,
+                          right: 0,
+                          background: C.surface,
+                          border: `1px solid ${C.borderHi}`,
+                          borderRadius: 8,
+                          marginTop: 4,
+                          boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                          zIndex: 1000,
+                          maxHeight: 250,
+                          overflowY: "auto",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                        }}>
+                          {nameSuggestions.map((st) => {
+                            const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                            return (
+                              <div
+                                key={st.rollNo}
+                                onMouseDown={() => selectSuggestedStudent(st, "name")}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  padding: "8px 12px",
+                                  borderBottom: `1px solid ${C.border}`,
+                                  cursor: "pointer",
+                                  transition: "background 0.2s",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                              >
+                                <div style={{
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: "50%",
+                                  overflow: "hidden",
+                                  background: C.raised,
+                                  border: `1px solid ${C.border}`,
+                                  flexShrink: 0
+                                }}>
+                                  <img
+                                    src={getAvatarUrl(st)}
+                                    alt={st.name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
                                 </div>
-                                <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
-                                  {st.rollNo}
+                                <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                  <div style={{ fontWeight: 700, fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {st.name}
+                                  </div>
+                                  <div style={{ fontSize: 10, color: C.muted, fontFamily: "monospace" }}>
+                                    {st.rollNo}
+                                  </div>
                                 </div>
+                                <span style={{
+                                  fontSize: 8,
+                                  fontWeight: 800,
+                                  color: charClass.color,
+                                  border: `1px solid ${charClass.color}30`,
+                                  background: `${charClass.color}10`,
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  textTransform: "uppercase",
+                                  flexShrink: 0
+                                }}>
+                                  Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
+                                </span>
                               </div>
-                              <span style={{
-                                fontSize: 8,
-                                fontWeight: 800,
-                                color: charClass.color,
-                                border: `1px solid ${charClass.color}30`,
-                                background: `${charClass.color}10`,
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                textTransform: "uppercase",
-                                flexShrink: 0
-                              }}>
-                                Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Battle Mode Dual Search Layout */
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 20 }}>
+                    
+                    {/* Left Column: Player 1 */}
+                    <div style={{ padding: 14, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: C.gold, textTransform: "uppercase" }}>Player 1</span>
+                        {foundStudent && (
+                          <span style={{ fontSize: 9, background: C.green + "15", color: C.green, border: `1px solid ${C.green}35`, padding: "1px 5px", borderRadius: 4, fontWeight: 700 }}>Ready</span>
+                        )}
+                      </div>
+                      
+                      <div style={{ position: "relative", marginBottom: 12 }}>
+                        <Label theme={C}>University Roll No</Label>
+                        <Input
+                          theme={C}
+                          value={roll}
+                          onChange={(e) => { setRoll(e.target.value); setBattleActive(false); }}
+                          placeholder="e.g. 24013590023"
+                          onKeyDown={(e) => e.key === "Enter" && handleInitiateBattle()}
+                          onFocus={() => setRollFocused(true)}
+                          onBlur={() => setTimeout(() => setRollFocused(false), 200)}
+                        />
+                        {rollFocused && rollSuggestions.length > 0 && (
+                          <div style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            background: C.surface,
+                            border: `1px solid ${C.borderHi}`,
+                            borderRadius: 8,
+                            marginTop: 4,
+                            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                            zIndex: 1000,
+                            maxHeight: 180,
+                            overflowY: "auto",
+                            backdropFilter: "blur(12px)",
+                            WebkitBackdropFilter: "blur(12px)",
+                          }}>
+                            {rollSuggestions.map((st) => {
+                              const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                              return (
+                                <div
+                                  key={st.rollNo}
+                                  onMouseDown={() => selectSuggestedStudent(st, "roll")}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "6px 10px",
+                                    borderBottom: `1px solid ${C.border}`,
+                                    cursor: "pointer",
+                                    transition: "background 0.2s",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                >
+                                  <img src={getAvatarUrl(st)} alt={st.name} style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{st.name}</div>
+                                  </div>
+                                  <span style={{ fontSize: 8, fontWeight: 800, color: charClass.color }}>Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ position: "relative" }}>
+                        <Label theme={C}>OR Student Name</Label>
+                        <Input
+                          theme={C}
+                          value={name}
+                          onChange={(e) => { setName(e.target.value); setBattleActive(false); }}
+                          placeholder="e.g. Sumit Ghosh"
+                          onKeyDown={(e) => e.key === "Enter" && handleInitiateBattle()}
+                          onFocus={() => setNameFocused(true)}
+                          onBlur={() => setTimeout(() => setNameFocused(false), 200)}
+                        />
+                        {nameFocused && nameSuggestions.length > 0 && (
+                          <div style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            background: C.surface,
+                            border: `1px solid ${C.borderHi}`,
+                            borderRadius: 8,
+                            marginTop: 4,
+                            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                            zIndex: 1000,
+                            maxHeight: 180,
+                            overflowY: "auto",
+                            backdropFilter: "blur(12px)",
+                            WebkitBackdropFilter: "blur(12px)",
+                          }}>
+                            {nameSuggestions.map((st) => {
+                              const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                              return (
+                                <div
+                                  key={st.rollNo}
+                                  onMouseDown={() => selectSuggestedStudent(st, "name")}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "6px 10px",
+                                    borderBottom: `1px solid ${C.border}`,
+                                    cursor: "pointer",
+                                    transition: "background 0.2s",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                >
+                                  <img src={getAvatarUrl(st)} alt={st.name} style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{st.name}</div>
+                                  </div>
+                                  <span style={{ fontSize: 8, fontWeight: 800, color: charClass.color }}>Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Column: Player 2 (Opponent) */}
+                    <div style={{ padding: 14, borderRadius: 8, background: C.raised, border: `1px solid ${C.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: "#06b6d4", textTransform: "uppercase" }}>Player 2</span>
+                        {opponentStudent && (
+                          <span style={{ fontSize: 9, background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.25)", padding: "1px 5px", borderRadius: 4, fontWeight: 700 }}>Ready</span>
+                        )}
+                      </div>
+
+                      <div style={{ position: "relative", marginBottom: 12 }}>
+                        <Label theme={C}>University Roll No</Label>
+                        <Input
+                          theme={C}
+                          value={opponentRoll}
+                          onChange={(e) => { setOpponentRoll(e.target.value); setBattleActive(false); }}
+                          placeholder="e.g. 24013590002"
+                          onKeyDown={(e) => e.key === "Enter" && handleInitiateBattle()}
+                          onFocus={() => setOpponentRollFocused(true)}
+                          onBlur={() => setTimeout(() => setOpponentRollFocused(false), 200)}
+                        />
+                        {opponentRollFocused && opponentRollSuggestions.length > 0 && (
+                          <div style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            background: C.surface,
+                            border: `1px solid ${C.borderHi}`,
+                            borderRadius: 8,
+                            marginTop: 4,
+                            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                            zIndex: 1000,
+                            maxHeight: 180,
+                            overflowY: "auto",
+                            backdropFilter: "blur(12px)",
+                            WebkitBackdropFilter: "blur(12px)",
+                          }}>
+                            {opponentRollSuggestions.map((st) => {
+                              const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                              return (
+                                <div
+                                  key={st.rollNo}
+                                  onMouseDown={() => selectOpponentStudent(st, "roll")}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "6px 10px",
+                                    borderBottom: `1px solid ${C.border}`,
+                                    cursor: "pointer",
+                                    transition: "background 0.2s",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                >
+                                  <img src={getAvatarUrl(st)} alt={st.name} style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{st.name}</div>
+                                  </div>
+                                  <span style={{ fontSize: 8, fontWeight: 800, color: charClass.color }}>Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ position: "relative" }}>
+                        <Label theme={C}>OR Student Name</Label>
+                        <Input
+                          theme={C}
+                          value={opponentName}
+                          onChange={(e) => { setOpponentName(e.target.value); setBattleActive(false); }}
+                          placeholder="e.g. Bhumi Shrivastava"
+                          onKeyDown={(e) => e.key === "Enter" && handleInitiateBattle()}
+                          onFocus={() => setOpponentNameFocused(true)}
+                          onBlur={() => setTimeout(() => setOpponentNameFocused(false), 200)}
+                        />
+                        {opponentNameFocused && opponentNameSuggestions.length > 0 && (
+                          <div style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            background: C.surface,
+                            border: `1px solid ${C.borderHi}`,
+                            borderRadius: 8,
+                            marginTop: 4,
+                            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.5)",
+                            zIndex: 1000,
+                            maxHeight: 180,
+                            overflowY: "auto",
+                            backdropFilter: "blur(12px)",
+                            WebkitBackdropFilter: "blur(12px)",
+                          }}>
+                            {opponentNameSuggestions.map((st) => {
+                              const charClass = getCharacterClass(st.sem2 ? st.sem2.sgpa : st.sem1.sgpa);
+                              return (
+                                <div
+                                  key={st.rollNo}
+                                  onMouseDown={() => selectOpponentStudent(st, "name")}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 10,
+                                    padding: "6px 10px",
+                                    borderBottom: `1px solid ${C.border}`,
+                                    cursor: "pointer",
+                                    transition: "background 0.2s",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = C.raised)}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                                >
+                                  <img src={getAvatarUrl(st)} alt={st.name} style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${C.border}`, flexShrink: 0 }} />
+                                  <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                                    <div style={{ fontWeight: 700, fontSize: 11, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{st.name}</div>
+                                  </div>
+                                  <span style={{ fontSize: 8, fontWeight: 800, color: charClass.color }}>Lvl {Math.floor((st.sem2 ? st.sem2.sgpa : st.sem1.sgpa) * 10)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
 
                 <div style={{ marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                  {(roll || name) && (
+                  {(roll || name || opponentRoll || opponentName) && (
                     <Button
                       theme={C}
                       variant="outline"
                       onClick={() => {
                         setRoll("");
                         setName("");
+                        setOpponentRoll("");
+                        setOpponentName("");
                         setFoundStudent(null);
+                        setOpponentStudent(null);
                         setSearchError("");
+                        setBattleActive(false);
+                        sfx.playSelect();
                       }}
                     >
                       Clear
                     </Button>
                   )}
-                  <Button theme={C} onClick={() => handleSearch()}>
-                    Search Student
+                  <Button
+                    theme={C}
+                    onClick={() => {
+                      if (compareMode) {
+                        handleInitiateBattle();
+                      } else {
+                        sfx.playSelect();
+                        handleSearch();
+                      }
+                    }}
+                  >
+                    {compareMode ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <SwordIcon size={12} />
+                        <span>Initiate Academic Duel</span>
+                      </span>
+                    ) : "Search Student"}
                   </Button>
                 </div>
 
@@ -920,12 +1622,196 @@ export default function BCAPortal() {
                 )}
               </div>
             </Card>
-          </div>
-
-            {/* Results Report Card */}
+          </div>            {/* Results Report Card */}
             {foundStudent && (
               <>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="gsap-fade-in">
+                {compareMode && foundStudent && opponentStudent && battleActive && (
+                  <div style={{ maxWidth: 800, width: "100%", margin: "0 auto 16px" }} className="gsap-fade-in">
+                    <Card theme={C} style={{ padding: "20px 24px", background: `linear-gradient(135deg, ${C.surface} 0%, rgba(94, 106, 210, 0.04) 50%, ${C.surface} 100%)`, border: `1px solid ${C.borderHi}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexDirection: isMobile ? "column" : "row", gap: 16 }}>
+                        
+                        {/* Player 1 summary */}
+                        <div 
+                          onClick={() => {
+                            setBattleFocus("player1");
+                            sfx.playSelect();
+                          }}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                            minWidth: 0,
+                            width: "100%",
+                            cursor: "pointer",
+                            padding: "8px 12px",
+                            borderRadius: 10,
+                            background: battleFocus === "player1" ? "rgba(94, 106, 210, 0.08)" : "transparent",
+                            border: `2px solid ${battleFocus === "player1" ? C.gold : "transparent"}`,
+                            boxShadow: battleFocus === "player1" ? `0 0 12px ${C.gold}20` : "none",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          <div style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            border: `2px solid ${C.gold}`,
+                            overflow: "hidden",
+                            flexShrink: 0
+                          }}>
+                            <img src={getAvatarUrl(foundStudent)} alt={foundStudent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {foundStudent.name}
+                            </div>
+                            <div style={{ fontSize: 10, color: C.gold, fontWeight: 800, textTransform: "uppercase" }}>
+                              {student1Class ? student1Class.title : "Class"} • {student1Cp} CP
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* VS Badge */}
+                        <div style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: "50%",
+                          background: C.red + "20",
+                          border: `2px solid ${C.red}`,
+                          color: C.red,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 13,
+                          fontWeight: 900,
+                          boxShadow: `0 0 12px ${C.red}35`,
+                          flexShrink: 0
+                        }}>
+                          VS
+                        </div>
+
+                        {/* Player 2 summary */}
+                        <div 
+                          onClick={() => {
+                            setBattleFocus("player2");
+                            sfx.playSelect();
+                          }}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: isMobile ? "flex-start" : "flex-end",
+                            gap: 14,
+                            minWidth: 0,
+                            width: "100%",
+                            cursor: "pointer",
+                            padding: "8px 12px",
+                            borderRadius: 10,
+                            background: battleFocus === "player2" ? C.amber + "10" : "transparent",
+                            border: `2px solid ${battleFocus === "player2" ? C.amber : "transparent"}`,
+                            boxShadow: battleFocus === "player2" ? `0 0 12px ${C.amber}28` : "none",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          <div style={{ minWidth: 0, flex: 1, textAlign: isMobile ? "left" : "right" }}>
+                            <div style={{ fontWeight: 800, fontSize: 14, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {opponentStudent.name}
+                            </div>
+                            <div style={{ fontSize: 10, color: "#06b6d4", fontWeight: 800, textTransform: "uppercase" }}>
+                              {student2Class ? student2Class.title : "Class"} • {student2Cp} CP
+                            </div>
+                          </div>
+                          <div style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: "50%",
+                            border: `2px solid ${C.amber}`,
+                            overflow: "hidden",
+                            flexShrink: 0
+                          }}>
+                            <img src={getAvatarUrl(opponentStudent)} alt={opponentStudent.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* Proportional attributes visual comparison bar */}
+                      <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 16, paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                        
+                        {/* GPA Bar */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 4 }}>
+                            <span>CUMULATIVE GPA DUEL</span>
+                            <span style={{ fontFamily: "monospace" }}>{student1Cgpa} vs {student2Cgpa}</span>
+                          </div>
+                          <div style={{ height: 6, background: C.border, borderRadius: 3, display: "flex", overflow: "hidden" }}>
+                            <div style={{ width: `${(parseFloat(student1Cgpa) / (parseFloat(student1Cgpa) + parseFloat(student2Cgpa) || 1)) * 100}%`, background: C.gold, transition: "width 0.5s ease-out" }} />
+                            <div style={{ width: `${(parseFloat(student2Cgpa) / (parseFloat(student1Cgpa) + parseFloat(student2Cgpa) || 1)) * 100}%`, background: C.amber, transition: "width 0.5s ease-out" }} />
+                          </div>
+                        </div>
+
+                        {/* CP Bar */}
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 4 }}>
+                            <span>TOTAL COMBAT POWER DUEL</span>
+                            <span style={{ fontFamily: "monospace" }}>{student1Cp} CP vs {student2Cp} CP</span>
+                          </div>
+                          <div style={{ height: 6, background: C.border, borderRadius: 3, display: "flex", overflow: "hidden" }}>
+                            <div style={{ width: `${(student1Cp / (student1Cp + student2Cp || 1)) * 100}%`, background: C.gold, transition: "width 0.5s ease-out" }} />
+                            <div style={{ width: `${(student2Cp / (student1Cp + student2Cp || 1)) * 100}%`, background: "#06b6d4", transition: "width 0.5s ease-out" }} />
+                          </div>
+                        </div>
+
+                      </div>
+                    </Card>
+                  </div>
+                )}
+      
+                {compareMode ? (
+                  battleActive && opponentStudent ? (
+                    /* Unified Comparative Dashboard for Battle Mode */
+                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="gsap-fade-in">
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: isMobile ? "1fr" : "3fr 2fr",
+                        gap: 16,
+                        alignItems: "start"
+                      }}>
+                        {/* Left Column: standing details & unified subject combat tables */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                          {renderStandingComparison()}
+                          {renderUnifiedSubjectTable()}
+                        </div>
+
+                        {/* Right Column: Comparative Charts & Achievements */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="sidebar-gamified">
+                          <RadarChart 
+                            student={activeStudent} 
+                            opponent={compareMode ? (activeStudent === foundStudent ? opponentStudent : foundStudent) : null} 
+                            semContext={semContext} 
+                            theme={C} 
+                            isMobile={isMobile} 
+                          />
+                          {renderAchievementsDuel()}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Duel Configuration state (waiting for duel start) */
+                    <div style={{ maxWidth: 800, width: "100%", margin: "24px auto", textAlign: "center" }} className="gsap-fade-in">
+                      <Card theme={C} style={{ padding: "30px 24px", borderStyle: "dashed" }}>
+                        <div style={{ marginBottom: 12, opacity: 0.8 }}><SwordIcon size={28} color={C.gold} /></div>
+                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Duel Field Configured</h4>
+                        <p style={{ margin: "6px 0 0", fontSize: 12, color: C.muted }}>
+                          Configure student search profiles above, then click <strong>Initiate Academic Duel</strong> to start the analysis!
+                        </p>
+                      </Card>
+                    </div>
+                  )
+                ) : (
+                  /* Standard Report Card View for Single Student */
+<div style={{ display: "flex", flexDirection: "column", gap: 16 }} className="gsap-fade-in">
                 
                 {/* Download Actions Toolbar */}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -999,7 +1885,7 @@ export default function BCAPortal() {
                       {!isMobile && <div style={{ width: 1, background: C.border }} />}
                       <div style={{ textAlign: isMobile ? "left" : "right", flex: isMobile ? "1" : "none" }}>
                         <div style={{ fontSize: 9, color: C.muted, fontWeight: 700, textTransform: "uppercase" }}>Sem 2 Rank</div>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: foundStudent.sem2 ? C.text : C.dim }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: activeStudent.sem2 ? C.text : C.dim }}>
                           #{studentRanks[foundStudent.rollNo].r2}
                         </div>
                       </div>
@@ -1014,18 +1900,18 @@ export default function BCAPortal() {
                   {/* Summary Metric Stats */}
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", background: C.border, gap: 1 }}>
                     {[
-                      { label: "Semester 1 SGPA", val: foundStudent.sem1.sgpa, sub: "Pass", color: C.text },
+                      { label: "Semester 1 SGPA", val: activeStudent.sem1.sgpa, sub: "Pass", color: C.text },
                       {
                         label: "Semester 2 SGPA",
-                        val: foundStudent.sem2 ? foundStudent.sem2.sgpa : "N/A",
-                        sub: foundStudent.sem2 ? "Pass" : "Held / Missing",
-                        color: foundStudent.sem2 ? C.text : C.muted
+                        val: activeStudent.sem2 ? activeStudent.sem2.sgpa : "N/A",
+                        sub: activeStudent.sem2 ? "Pass" : "Held / Missing",
+                        color: activeStudent.sem2 ? C.text : C.muted
                       },
                       { label: "Cumulative CGPA", val: studentRanks[foundStudent.rollNo].cgpa, sub: "Overall", color: C.gold },
                       {
                         label: "Combined Total",
-                        val: `${foundStudent.sem1.grand + (foundStudent.sem2 ? foundStudent.sem2.grand : 0)}`,
-                        sub: `/ ${foundStudent.sem2 ? 1600 : 800}`,
+                        val: `${activeStudent.sem1.grand + (activeStudent.sem2 ? activeStudent.sem2.grand : 0)}`,
+                        sub: `/ ${activeStudent.sem2 ? 1600 : 800}`,
                         color: C.text
                       }
                     ].map((m, idx) => (
@@ -1060,8 +1946,8 @@ export default function BCAPortal() {
                         <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
                           Semester 1 Results Summary
                         </h4>
-                        <Pill color={foundStudent.sem1.result.includes("PASSED") ? C.green : C.gold}>
-                          {foundStudent.sem1.result}
+                        <Pill color={activeStudent.sem1.result.includes("PASSED") ? C.green : C.gold}>
+                          {activeStudent.sem1.result}
                         </Pill>
                       </div>
 
@@ -1069,7 +1955,7 @@ export default function BCAPortal() {
                       {isMobile ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                           {SUBJECTS_SEM1.map((sub) => {
-                            const scoreData = foundStudent.sem1[sub.code];
+                            const scoreData = activeStudent.sem1[sub.code];
                             if (!scoreData) return null;
                             const [ext, sec, tot] = scoreData;
                             const maxVal = sub.maxFin + sub.maxInt;
@@ -1135,7 +2021,7 @@ export default function BCAPortal() {
                             </thead>
                             <tbody>
                               {SUBJECTS_SEM1.map((sub) => {
-                                const scoreData = foundStudent.sem1[sub.code];
+                                const scoreData = activeStudent.sem1[sub.code];
                                 if (!scoreData) return null;
                                 const [ext, sec, tot] = scoreData;
                                 const maxVal = sub.maxFin + sub.maxInt;
@@ -1175,9 +2061,9 @@ export default function BCAPortal() {
 
                       {/* Theory / Practical summary Sem 1 */}
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, marginTop: 14, fontSize: 12, color: C.muted, fontWeight: 500 }}>
-                        <div>Theory: <strong style={{ color: C.text }}>{foundStudent.sem1.theory}/600</strong></div>
-                        <div>Practical: <strong style={{ color: C.text }}>{foundStudent.sem1.practical}/200</strong></div>
-                        <div>SGPA: <strong style={{ color: C.gold }}>{foundStudent.sem1.sgpa}</strong></div>
+                        <div>Theory: <strong style={{ color: C.text }}>{activeStudent.sem1.theory}/600</strong></div>
+                        <div>Practical: <strong style={{ color: C.text }}>{activeStudent.sem1.practical}/200</strong></div>
+                        <div>SGPA: <strong style={{ color: C.gold }}>{activeStudent.sem1.sgpa}</strong></div>
                       </div>
                     </div>
                   </Card>
@@ -1191,21 +2077,21 @@ export default function BCAPortal() {
                         <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
                           Semester 2 Results Summary
                         </h4>
-                        {foundStudent.sem2 ? (
-                          <Pill color={foundStudent.sem2.result.includes("PASSED") ? C.green : C.gold}>
-                            {foundStudent.sem2.result}
+                        {activeStudent.sem2 ? (
+                          <Pill color={activeStudent.sem2.result.includes("PASSED") ? C.green : C.gold}>
+                            {activeStudent.sem2.result}
                           </Pill>
                         ) : (
                           <Pill color={C.red}>Held / No Records</Pill>
                         )}
                       </div>
 
-                      {foundStudent.sem2 ? (
+                      {activeStudent.sem2 ? (
                         <>
                           {isMobile ? (
                             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                               {SUBJECTS_SEM2.map((sub) => {
-                                const scoreData = foundStudent.sem2[sub.code];
+                                const scoreData = activeStudent.sem2[sub.code];
                                 if (!scoreData) return null;
                                 const [ext, sec, tot] = scoreData;
                                 const maxVal = sub.maxFin + sub.maxInt;
@@ -1271,7 +2157,7 @@ export default function BCAPortal() {
                                 </thead>
                                 <tbody>
                                   {SUBJECTS_SEM2.map((sub) => {
-                                    const scoreData = foundStudent.sem2[sub.code];
+                                    const scoreData = activeStudent.sem2[sub.code];
                                     if (!scoreData) return null;
                                     const [ext, sec, tot] = scoreData;
                                     const maxVal = sub.maxFin + sub.maxInt;
@@ -1311,9 +2197,9 @@ export default function BCAPortal() {
 
                           {/* Theory / Practical summary Sem 2 */}
                           <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, marginTop: 14, fontSize: 12, color: C.muted, fontWeight: 500 }}>
-                            <div>Theory: <strong style={{ color: C.text }}>{foundStudent.sem2.theory}/600</strong></div>
-                            <div>Practical: <strong style={{ color: C.text }}>{foundStudent.sem2.practical}/200</strong></div>
-                            <div>SGPA: <strong style={{ color: C.gold }}>{foundStudent.sem2.sgpa}</strong></div>
+                            <div>Theory: <strong style={{ color: C.text }}>{activeStudent.sem2.theory}/600</strong></div>
+                            <div>Practical: <strong style={{ color: C.text }}>{activeStudent.sem2.practical}/200</strong></div>
+                            <div>SGPA: <strong style={{ color: C.gold }}>{activeStudent.sem2.sgpa}</strong></div>
                           </div>
                         </>
                       ) : (
@@ -1335,12 +2221,13 @@ export default function BCAPortal() {
                   </div>
 
                   {/* Right Column: Gamified Radar & RPG Stats */}
-                  <RadarChart student={foundStudent} semContext={semContext} theme={C} isMobile={isMobile} />
+                  <RadarChart student={activeStudent} opponent={compareMode ? (activeStudent === foundStudent ? opponentStudent : foundStudent) : null} semContext={semContext} theme={C} isMobile={isMobile} />
                 </div>
 
               </div>
 
-              {/* Hidden scorecard template for PNG download */}
+              
+                )}{/* Hidden scorecard template for PNG download */}
               <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
                 <div
                   ref={scorecardRef}
@@ -1413,18 +2300,18 @@ export default function BCAPortal() {
                           flexShrink: 0
                         }}>
                           <img
-                            src={getAvatarUrl(foundStudent)}
-                            alt={`${foundStudent.name}'s Avatar`}
+                            src={getAvatarUrl(activeStudent)}
+                            alt={`${activeStudent.name}'s Avatar`}
                             crossOrigin="anonymous"
                             style={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
                         </div>
                         <div>
                           <div style={{ fontSize: 9, fontWeight: 600, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", letterSpacing: 1 }}>Student Profile</div>
-                          <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.name}</div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{activeStudent.name}</div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                             <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(255, 255, 255, 0.6)" }}>
-                              ROLL NO: <span style={{ color: "#828fff", fontWeight: 600 }}>{foundStudent.rollNo}</span>
+                              ROLL NO: <span style={{ color: "#828fff", fontWeight: 600 }}>{activeStudent.rollNo}</span>
                             </span>
                             {downloadClass && (
                               <span style={{
@@ -1451,17 +2338,17 @@ export default function BCAPortal() {
                       <div style={{ display: "flex", gap: 10 }}>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
                           <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 1 Rank</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].r1}</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>#{studentRanks[activeStudent.rollNo].r1}</div>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
                           <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 2 Rank</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: foundStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
-                            {foundStudent.sem2 ? `#${studentRanks[foundStudent.rollNo].r2}` : "N/A"}
+                          <div style={{ fontSize: 13, fontWeight: 800, color: activeStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                            {activeStudent.sem2 ? `#${studentRanks[activeStudent.rollNo].r2}` : "N/A"}
                           </div>
                         </div>
                         <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
                           <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Rank</div>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: C.gold, marginTop: 2 }}>#{studentRanks[foundStudent.rollNo].rc}</div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: C.gold, marginTop: 2 }}>#{studentRanks[activeStudent.rollNo].rc}</div>
                         </div>
                       </div>
                     </div>
@@ -1482,17 +2369,17 @@ export default function BCAPortal() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 1 SGPA</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{foundStudent.sem1.sgpa}</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: "#ffffff", marginTop: 2 }}>{activeStudent.sem1.sgpa}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Sem 2 SGPA</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: foundStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
-                              {foundStudent.sem2 ? foundStudent.sem2.sgpa : "N/A"}
+                            <div style={{ fontSize: 16, fontWeight: 800, color: activeStudent.sem2 ? "#ffffff" : "rgba(255,255,255,0.2)", marginTop: 2 }}>
+                              {activeStudent.sem2 ? activeStudent.sem2.sgpa : "N/A"}
                             </div>
                           </div>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Cumulative CGPA</div>
-                            <div style={{ fontSize: 16, fontWeight: 800, color: C.gold, marginTop: 2 }}>{studentRanks[foundStudent.rollNo].cgpa}</div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: C.gold, marginTop: 2 }}>{studentRanks[activeStudent.rollNo].cgpa}</div>
                           </div>
                           <div>
                             <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.4)", textTransform: "uppercase", fontWeight: 700 }}>Year 1 Result</div>
@@ -1501,7 +2388,7 @@ export default function BCAPortal() {
                         </div>
                         
                         <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: 8, marginTop: 8, fontSize: 10, color: "rgba(255, 255, 255, 0.5)" }}>
-                          Total Marks: <strong style={{ color: "#ffffff" }}>{foundStudent.sem1.grand + (foundStudent.sem2 ? foundStudent.sem2.grand : 0)}</strong> / {foundStudent.sem2 ? 1600 : 800}
+                          Total Marks: <strong style={{ color: "#ffffff" }}>{activeStudent.sem1.grand + (activeStudent.sem2 ? activeStudent.sem2.grand : 0)}</strong> / {activeStudent.sem2 ? 1600 : 800}
                         </div>
                       </div>
                       
@@ -1523,7 +2410,7 @@ export default function BCAPortal() {
                             <div>
                               <div style={{ fontSize: 7, color: "#828fff", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 1</div>
                               {SUBJECTS_SEM1.map((s) => {
-                                const mark = foundStudent.sem1[s.code];
+                                const mark = activeStudent.sem1[s.code];
                                 if (!mark) return null;
                                 const maxVal = s.maxFin + s.maxInt;
                                 const grade = getGrade(mark[2], maxVal);
@@ -1539,9 +2426,9 @@ export default function BCAPortal() {
                             {/* List Sem 2 Grades */}
                             <div>
                               <div style={{ fontSize: 7, color: "#828fff", fontWeight: 700, marginBottom: 2, textTransform: "uppercase" }}>Semester 2</div>
-                              {foundStudent.sem2 ? (
+                              {activeStudent.sem2 ? (
                                 SUBJECTS_SEM2.map((s) => {
-                                  const mark = foundStudent.sem2[s.code];
+                                  const mark = activeStudent.sem2[s.code];
                                   if (!mark) return null;
                                   const maxVal = s.maxFin + s.maxInt;
                                   const grade = getGrade(mark[2], maxVal);

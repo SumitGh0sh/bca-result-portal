@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
+import { sfx } from "../utils/audio";
+
+const ShieldIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const SwordIcon = ({ color = "currentColor", size = 16, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle", ...style }}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="15" y1="5" x2="19" y2="9" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="5" y1="9" x2="9" y2="5" />
+  </svg>
+);
 import { getCharacterClass, getAvatarUrl } from "../data/mockData";
 import { ClassIcon } from "./UIComponents";
+import { getUnlockedAchievements } from "../data/achievements";
 
 // Generic subject category lists
 const AXIS_LABELS_SEM1 = [
@@ -28,9 +45,10 @@ const SUBJECT_CODES_SEM2 = [
   "AUC201", "BCA201P", "BCA202P", "BCA203P", "AUC202P"
 ];
 
-export default function RadarChart({ student, semContext, theme: C, isMobile }) {
+export default function RadarChart({ student, opponent, semContext, theme: C, isMobile }) {
   const [tooltip, setTooltip] = useState(null);
   const [activeAxis, setActiveAxis] = useState(null);
+  const [battleFilter, setBattleFilter] = useState("overall"); // "sem1" | "sem2" | "overall"
 
   // SVG parameters
   const size = 320;
@@ -43,69 +61,79 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
     return Array.from({ length: N }, (_, i) => (i * 2 * Math.PI) / N - Math.PI / 2);
   }, [N]);
 
-  // Determine current labels & codes
+  // Determine current labels & codes based on battle filters
+  const activeSemContext = opponent ? (
+    battleFilter === "sem1" ? "1" : (battleFilter === "sem2" ? "2" : "cumulative")
+  ) : semContext;
+
   const labels = useMemo(() => {
-    if (semContext === "1") return AXIS_LABELS_SEM1;
-    if (semContext === "2") return AXIS_LABELS_SEM2;
+    if (activeSemContext === "1") return AXIS_LABELS_SEM1;
+    if (activeSemContext === "2") return AXIS_LABELS_SEM2;
     return AXIS_LABELS_CUMULATIVE;
-  }, [semContext]);
+  }, [activeSemContext]);
+
+  const getSubjectDetails = (semData, code, isSem2 = false) => {
+    if (!semData) return { val: 0, max: 100, raw: "-", name: "Unavailable", ext: 0, int: 0, code };
+    const scoreData = semData[code];
+    if (!scoreData) return { val: 0, max: 100, raw: "-", name: "Unavailable", ext: 0, int: 0, code };
+    const [ext, int, tot] = scoreData;
+    const isTheory = !code.endsWith("P");
+    const maxScore = isTheory ? 100 : 50;
+    const actualScore = tot || 0;
+    const percent = (actualScore / maxScore) * 100;
+
+    // Find full name from arrays if needed, or fallback
+    let name = "Subject";
+    if (isSem2) {
+      if (code === "BSC201") name = "Communicative English";
+      else if (code === "BSC202") name = "Basic Discrete Mathematics";
+      else if (code === "BCA201") name = "Statistics-II for BCA";
+      else if (code === "BCA202") name = "Operating Systems";
+      else if (code === "BCA203") name = "Data Structures";
+      else if (code === "AUC201") name = "Holistic Education";
+      else if (code === "BCA201P") name = "Statistics Tools Lab";
+      else if (code === "BCA202P") name = "Operating System Lab";
+      else if (code === "BCA203P") name = "Data Structures Lab";
+      else if (code === "AUC202P") name = "Sports / NSS / Yoga / Painting";
+    } else {
+      if (code === "BSC101") name = "Professional English";
+      else if (code === "BSC102") name = "Foundational Mathematics";
+      else if (code === "BCA101") name = "Statistics-I";
+      else if (code === "BCA102") name = "Digital Computer Fundamentals";
+      else if (code === "BCA103") name = "Intro to Programming Using C";
+      else if (code === "AUC101") name = "Holistic Education";
+      else if (code === "BCA102P") name = "Computer Fundamentals Lab";
+      else if (code === "BCA103P") name = "C Programming Lab";
+      else if (code === "BCA104P") name = "Web Technology Lab";
+      else if (code === "AUC102P") name = "Extracurricular Activities";
+    }
+
+    return {
+      val: percent,
+      max: maxScore,
+      raw: actualScore,
+      ext: ext !== null ? ext : "Ab",
+      int,
+      name,
+      code
+    };
+  };
 
   // Parse Student Scores normalized to percentage
   const chartData = useMemo(() => {
     if (!student) return null;
-
-    const getSubjectDetails = (semData, code, isSem2 = false) => {
-      if (!semData) return { val: 0, max: 100, raw: "-", name: "Unavailable", ext: 0, int: 0 };
-      const scoreData = semData[code];
-      if (!scoreData) return { val: 0, max: 100, raw: "-", name: "Unavailable", ext: 0, int: 0 };
-      const [ext, int, tot] = scoreData;
-      const isTheory = !code.endsWith("P");
-      const maxScore = isTheory ? 100 : 50;
-      const actualScore = tot || 0;
-      const percent = (actualScore / maxScore) * 100;
-
-      // Find full name from arrays if needed, or fallback
-      let name = "Subject";
-      if (isSem2) {
-        if (code === "BSC201") name = "Communicative English";
-        else if (code === "BSC202") name = "Basic Discrete Mathematics";
-        else if (code === "BCA201") name = "Statistics-II for BCA";
-        else if (code === "BCA202") name = "Operating Systems";
-        else if (code === "BCA203") name = "Data Structures";
-        else if (code === "AUC201") name = "Holistic Education";
-        else if (code === "BCA201P") name = "Statistics Tools Lab";
-        else if (code === "BCA202P") name = "Operating System Lab";
-        else if (code === "BCA203P") name = "Data Structures Lab";
-        else if (code === "AUC202P") name = "Sports / NSS / Yoga / Painting";
-      } else {
-        if (code === "BSC101") name = "Professional English";
-        else if (code === "BSC102") name = "Foundational Mathematics";
-        else if (code === "BCA101") name = "Statistics-I";
-        else if (code === "BCA102") name = "Digital Computer Fundamentals";
-        else if (code === "BCA103") name = "Intro to Programming Using C";
-        else if (code === "AUC101") name = "Holistic Education";
-        else if (code === "BCA102P") name = "Computer Fundamentals Lab";
-        else if (code === "BCA103P") name = "C Programming Lab";
-        else if (code === "BCA104P") name = "Web Technology Lab";
-        else if (code === "AUC102P") name = "Extracurricular Activities";
-      }
-
-      return {
-        val: percent,
-        max: maxScore,
-        raw: actualScore,
-        ext: ext !== null ? ext : "Ab",
-        int,
-        name,
-        code
-      };
-    };
-
     const sem1Points = SUBJECT_CODES_SEM1.map(code => getSubjectDetails(student.sem1, code, false));
     const sem2Points = student.sem2 ? SUBJECT_CODES_SEM2.map(code => getSubjectDetails(student.sem2, code, true)) : null;
-
     return { sem1Points, sem2Points };
   }, [student]);
+
+  // Parse Opponent Scores normalized to percentage
+  const opponentData = useMemo(() => {
+    if (!opponent) return null;
+    const sem1Points = SUBJECT_CODES_SEM1.map(code => getSubjectDetails(opponent.sem1, code, false));
+    const sem2Points = opponent.sem2 ? SUBJECT_CODES_SEM2.map(code => getSubjectDetails(opponent.sem2, code, true)) : null;
+    return { sem1Points, sem2Points };
+  }, [opponent]);
 
   // Generate SVG Polygon path for values
   const getPathData = (points) => {
@@ -120,8 +148,57 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
     return `M ${coords.join(" L ")} Z`;
   };
 
+  // Player 1 & Player 2 Points mapped to active filters
+  const p1Points = useMemo(() => {
+    if (activeSemContext === "1") return chartData.sem1Points;
+    if (activeSemContext === "2") return chartData.sem2Points || chartData.sem1Points;
+    
+    // Cumulative average points
+    return SUBJECT_CODES_SEM1.map((code, idx) => {
+      const p1 = chartData.sem1Points[idx].val;
+      const p2 = chartData.sem2Points ? chartData.sem2Points[idx].val : p1;
+      const r1 = chartData.sem1Points[idx].raw === "-" ? 0 : chartData.sem1Points[idx].raw;
+      const r2 = chartData.sem2Points && chartData.sem2Points[idx].raw !== "-" ? chartData.sem2Points[idx].raw : 0;
+      return {
+        val: chartData.sem2Points ? (p1 + p2) / 2 : p1,
+        raw: chartData.sem2Points ? (r1 + r2) : r1,
+        max: chartData.sem1Points[idx].max + (chartData.sem2Points ? chartData.sem2Points[idx].max : 0),
+        name: chartData.sem1Points[idx].name,
+        code: chartData.sem1Points[idx].code
+      };
+    });
+  }, [activeSemContext, chartData]);
+
+  const p2Points = useMemo(() => {
+    if (!opponentData) return null;
+    if (activeSemContext === "1") return opponentData.sem1Points;
+    if (activeSemContext === "2") return opponentData.sem2Points || opponentData.sem1Points;
+    
+    // Cumulative average points
+    return SUBJECT_CODES_SEM1.map((code, idx) => {
+      const p1 = opponentData.sem1Points[idx].val;
+      const p2 = opponentData.sem2Points ? opponentData.sem2Points[idx].val : p1;
+      const r1 = opponentData.sem1Points[idx].raw === "-" ? 0 : opponentData.sem1Points[idx].raw;
+      const r2 = opponentData.sem2Points && opponentData.sem2Points[idx].raw !== "-" ? opponentData.sem2Points[idx].raw : 0;
+      return {
+        val: opponentData.sem2Points ? (p1 + p2) / 2 : p1,
+        raw: opponentData.sem2Points ? (r1 + r2) : r1,
+        max: opponentData.sem1Points[idx].max + (opponentData.sem2Points ? opponentData.sem2Points[idx].max : 0),
+        name: opponentData.sem1Points[idx].name,
+        code: opponentData.sem1Points[idx].code
+      };
+    });
+  }, [activeSemContext, opponentData]);
+
   const sem1Path = getPathData(chartData.sem1Points);
   const sem2Path = chartData.sem2Points ? getPathData(chartData.sem2Points) : null;
+
+  const opponentSem1Path = opponentData ? getPathData(opponentData.sem1Points) : null;
+  const opponentSem2Path = opponentData && opponentData.sem2Points ? getPathData(opponentData.sem2Points) : null;
+
+  const path1 = getPathData(p1Points);
+  const path2 = p2Points ? getPathData(p2Points) : null;
+  const opponentColor = C.amber; // Aligned to amber brand color
 
   // Concentric background rings coordinates
   const gridRings = [20, 40, 60, 80, 100];
@@ -134,64 +211,19 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
   const charClass = getCharacterClass(cgpaVal);
   const combatPower = Math.round(cgpaVal * 1000);
 
-  // Dynamic Gamified Achievements
+  // Dynamic Unlocked Achievements
   const achievements = useMemo(() => {
-    const list = [];
-    
-    // Check for Semester 1 Clearance
-    if (student.sem1 && !student.sem1.result.includes("PROMOTED") && student.sem1.sgpa >= 5.0) {
-      list.push({ title: "Sem 1 Conqueror", icon: "⚔️", desc: "Successfully cleared all Semester 1 quests." });
+    const unlocked = getUnlockedAchievements(student);
+    if (unlocked.length === 0) {
+      return [{ title: "Rookie Scholar", icon: "🌱", desc: "Embarking on the academic combat trial." }];
     }
-    
-    // Check for Semester 2 Clearance
-    if (student.sem2 && !student.sem2.result.includes("PROMOTED") && student.sem2.sgpa >= 5.0) {
-      list.push({ title: "Sem 2 Conqueror", icon: "🛡️", desc: "Successfully cleared all Semester 2 quests." });
-    }
-    
-    // Check for high subject performance
-    let perfectInternals = false;
-    let mathExpert = false;
-    let programmingExpert = false;
-    let sRankSubject = false;
-
-    const checkSemPoints = (points) => {
-      if (!points) return;
-      points.forEach(p => {
-        if (p.int === 30) perfectInternals = true;
-        if ((p.code === "BSC102" || p.code === "BSC202") && p.raw >= 80) mathExpert = true;
-        if ((p.code === "BCA103" || p.code === "BCA203") && p.raw >= 80) programmingExpert = true;
-        if (p.raw >= 90 || (p.max === 50 && p.raw >= 45)) sRankSubject = true;
-      });
-    };
-
-    checkSemPoints(chartData.sem1Points);
-    checkSemPoints(chartData.sem2Points);
-
-    if (perfectInternals) {
-      list.push({ title: "Synergy Catalyst", icon: "🎯", desc: "Scored perfect 30/30 in Internal Attributes." });
-    }
-    if (mathExpert) {
-      list.push({ title: "Equation Sorcerer", icon: "📐", desc: "Unlocked advanced logical core in Mathematics (>80%)." });
-    }
-    if (programmingExpert) {
-      list.push({ title: "Code Weaver", icon: "💻", desc: "Demonstrated master syntax capability in Programming (>80%)." });
-    }
-    if (sRankSubject) {
-      list.push({ title: "Grandmaster Spark", icon: "⚡", desc: "Achieved an Outstanding (O) rank in a main quest subject." });
-    }
-    
-    // Default fallback achievements
-    if (list.length === 0) {
-      list.push({ title: "Rookie Scholar", icon: "🌱", desc: "Embarking on the academic combat trial." });
-    }
-
-    return list;
-  }, [student, chartData]);
+    return unlocked;
+  }, [student]);
 
   if (!chartData) return null;
 
   // Handle dot hover for tooltip
-  const handleDotHover = (e, p, idx, isSem2) => {
+  const handleDotHover = (e, p, idx, isSem2, ownerName = student.name) => {
     const rect = e.target.getBoundingClientRect();
     const svgEl = e.target.closest("svg");
     const svgRect = svgEl.getBoundingClientRect();
@@ -222,7 +254,8 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
       int: p.int,
       percent: Math.round(p.val),
       grade,
-      sem: isSem2 ? "Sem 2" : "Sem 1"
+      sem: isSem2 ? "Sem 2" : "Sem 1",
+      studentName: ownerName
     });
     setActiveAxis(idx);
   };
@@ -344,25 +377,67 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
       }}>
         <div style={{ textAlign: "center", marginBottom: 12 }}>
           <h4 className="heading-card" style={{ margin: 0, fontSize: 13, fontWeight: 700, color: C.text, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            🛡️ Attribute Web Radar
+            <ShieldIcon size={14} style={{ marginRight: 6 }} /> Attribute Web Radar
           </h4>
           <span style={{ fontSize: 10, color: C.dim }}>
-            {semContext === "cumulative" ? "Compare Semester 1 & 2 Skills" : `Visualize Sem ${semContext} Scores`}
+            {opponent ? "Interactive Duel Radar Comparison" : (semContext === "cumulative" ? "Compare Semester 1 & 2 Skills" : `Visualize Sem ${semContext} Scores`)}
           </span>
         </div>
 
+        {/* Battle Chart Filters */}
+        {opponent && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, background: C.raised, padding: 3, borderRadius: 8, border: `1px solid ${C.border}` }}>
+            {["sem1", "sem2", "overall"].map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setBattleFilter(f);
+                  sfx.playSelect();
+                }}
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  background: battleFilter === f ? C.gold : "transparent",
+                  color: battleFilter === f ? "#ffffff" : C.muted,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  textTransform: "uppercase"
+                }}
+              >
+                {f === "overall" ? "Overall" : f === "sem1" ? "Sem 1" : "Sem 2"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Legend */}
-        {semContext === "cumulative" && student.sem2 && (
+        {opponent ? (
           <div style={{ display: "flex", gap: 14, fontSize: 10, fontWeight: 600, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: sem1Color }} />
-              <span style={{ color: C.text }}>Semester 1</span>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.gold }} />
+              <span style={{ color: C.text }}>{student.name.split(" ")[0]}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: sem2Color }} />
-              <span style={{ color: C.text }}>Semester 2</span>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.amber }} />
+              <span style={{ color: C.text }}>{opponent.name.split(" ")[0]}</span>
             </div>
           </div>
+        ) : (
+          semContext === "cumulative" && student.sem2 && (
+            <div style={{ display: "flex", gap: 14, fontSize: 10, fontWeight: 600, marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: sem1Color }} />
+                <span style={{ color: C.text }}>Semester 1</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: sem2Color }} />
+                <span style={{ color: C.text }}>Semester 2</span>
+              </div>
+            </div>
+          )
         )}
 
         <div style={{ position: "relative", width: "100%", maxWidth: size, height: "auto", aspectRatio: "1 / 1" }}>
@@ -434,8 +509,8 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
             })}
 
             {/* Radar Polygons */}
-            {/* Semester 1 Polygon */}
-            {(semContext === "1" || semContext === "cumulative") && sem1Path && (
+            {/* Single Student Mode: show Sem 1 & Sem 2 Polygons */}
+            {!opponent && (semContext === "1" || semContext === "cumulative") && sem1Path && (
               <polygon
                 points={sem1Path.substring(2, sem1Path.length - 2).replace(/ L /g, " ").replace(/ Z/g, "")}
                 fill={sem1Color + "1a"}
@@ -444,9 +519,7 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
                 style={{ transition: "all 0.3s ease" }}
               />
             )}
-
-            {/* Semester 2 Polygon */}
-            {(semContext === "2" || semContext === "cumulative") && student.sem2 && sem2Path && (
+            {!opponent && (semContext === "2" || semContext === "cumulative") && student.sem2 && sem2Path && (
               <polygon
                 points={sem2Path.substring(2, sem2Path.length - 2).replace(/ L /g, " ").replace(/ Z/g, "")}
                 fill={sem2Color + "1a"}
@@ -456,9 +529,29 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
               />
             )}
 
+            {/* Battle Mode: show Player 1 vs Player 2 Polygons */}
+            {opponent && path1 && (
+              <polygon
+                points={path1.substring(2, path1.length - 2).replace(/ L /g, " ").replace(/ Z/g, "")}
+                fill={C.gold + "12"}
+                stroke={C.gold}
+                strokeWidth="2.5"
+                style={{ transition: "all 0.3s ease" }}
+              />
+            )}
+            {opponent && path2 && (
+              <polygon
+                points={path2.substring(2, path2.length - 2).replace(/ L /g, " ").replace(/ Z/g, "")}
+                fill={C.amber + "14"}
+                stroke={C.amber}
+                strokeWidth="2.5"
+                style={{ transition: "all 0.3s ease" }}
+              />
+            )}
+
             {/* Hover Target Dots (renders interactive circles for users to hover over) */}
-            {/* Semester 1 Dots */}
-            {(semContext === "1" || semContext === "cumulative") &&
+            {/* Single Student Mode Dots */}
+            {!opponent && (semContext === "1" || semContext === "cumulative") &&
               chartData.sem1Points.map((p, idx) => {
                 const angle = angles[idx];
                 const r = (p.val / 100) * radius;
@@ -475,14 +568,13 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
                     stroke={C.surface}
                     strokeWidth="1.5"
                     style={{ cursor: "pointer", transition: "r 0.15s ease" }}
-                    onMouseEnter={(e) => handleDotHover(e, p, idx, false)}
+                    onMouseEnter={(e) => handleDotHover(e, p, idx, false, student.name)}
                     onMouseLeave={handleDotLeave}
                   />
                 );
               })}
 
-            {/* Semester 2 Dots */}
-            {(semContext === "2" || semContext === "cumulative") && student.sem2 &&
+            {!opponent && (semContext === "2" || semContext === "cumulative") && student.sem2 &&
               chartData.sem2Points.map((p, idx) => {
                 const angle = angles[idx];
                 const r = (p.val / 100) * radius;
@@ -499,12 +591,58 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
                     stroke={C.surface}
                     strokeWidth="1.5"
                     style={{ cursor: "pointer", transition: "r 0.15s ease" }}
-                    onMouseEnter={(e) => handleDotHover(e, p, idx, true)}
+                    onMouseEnter={(e) => handleDotHover(e, p, idx, true, student.name)}
                     onMouseLeave={handleDotLeave}
                   />
                 );
               })}
-          </svg>
+
+            {/* Battle Mode Dots: Player 1 */}
+            {opponent && p1Points.map((p, idx) => {
+              const angle = angles[idx];
+              const r = (p.val / 100) * radius;
+              const x = cx + r * Math.cos(angle);
+              const y = cy + r * Math.sin(angle);
+
+              return (
+                <circle
+                  key={`p1-dot-${idx}`}
+                  cx={x}
+                  cy={y}
+                  r={activeAxis === idx ? 5 : 3.5}
+                  fill={C.gold}
+                  stroke={C.surface}
+                  strokeWidth="1.5"
+                  style={{ cursor: "pointer", transition: "r 0.15s ease" }}
+                  onMouseEnter={(e) => handleDotHover(e, p, idx, activeSemContext === "2", student.name)}
+                  onMouseLeave={handleDotLeave}
+                />
+              );
+            })}
+
+            {/* Battle Mode Dots: Player 2 */}
+            {opponent && p2Points && p2Points.map((p, idx) => {
+              const angle = angles[idx];
+              const r = (p.val / 100) * radius;
+              const x = cx + r * Math.cos(angle);
+              const y = cy + r * Math.sin(angle);
+
+              return (
+                <circle
+                  key={`p2-dot-${idx}`}
+                  cx={x}
+                  cy={y}
+                  r={activeAxis === idx ? 5 : 3.5}
+                  fill={C.amber}
+                  stroke={C.surface}
+                  strokeWidth="1.5"
+                  style={{ cursor: "pointer", transition: "r 0.15s ease" }}
+                  onMouseEnter={(e) => handleDotHover(e, p, idx, activeSemContext === "2", opponent.name)}
+                  onMouseLeave={handleDotLeave}
+                />
+              );
+            })}
+            </svg>
 
           {/* Render Tooltip overlay */}
           {tooltip && (
@@ -539,6 +677,11 @@ export default function RadarChart({ student, semContext, theme: C, isMobile }) 
                 borderBottom: `1px solid ${C.borderHi}`
               }} />
 
+              {opponent && (
+                <div style={{ fontSize: 9, opacity: 0.5, fontWeight: 800, textTransform: "uppercase", marginBottom: 2 }}>
+                  ⚔️ {tooltip.studentName}
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
                 <span style={{ fontWeight: 800, color: C.gold }}>{tooltip.code}</span>
                 <span style={{ fontSize: 9, opacity: 0.7, textTransform: "uppercase", fontWeight: 700 }}>{tooltip.sem}</span>

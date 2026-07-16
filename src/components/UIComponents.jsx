@@ -231,3 +231,31 @@ export const ClassIcon = ({ classTitle, color = "currentColor", size = 12, style
     </svg>
   );
 };
+
+export const Slider = ({ label, min, max, step, value, onChange, theme: C, ...props }) => (
+  <div style={{ marginBottom: 12 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 4 }}>
+      <span>{label}</span>
+      <span style={{ color: C.gold, fontFamily: "monospace" }}>{parseFloat(value).toFixed(2)}</span>
+    </div>
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={onChange}
+      style={{
+        width: "100%",
+        height: 6,
+        borderRadius: 3,
+        background: C.border,
+        outline: "none",
+        WebkitAppearance: "none",
+        cursor: "pointer",
+        accentColor: C.gold
+      }}
+      {...props}
+    />
+  </div>
+);
